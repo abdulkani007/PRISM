@@ -18,9 +18,9 @@ class MongoDBService:
         self.db = None
         self.is_connected = False
         
-        # In-memory fallback stores
+        # In-memory fallback stores (strictly scoped by investigationId)
         self._memory_investigations: Dict[str, Dict[str, Any]] = {}
-        self._memory_candidates: Dict[str, Dict[str, Any]] = {}
+        self._memory_candidates: Dict[str, Dict[str, Dict[str, Any]]] = {}  # inv_id -> {cand_id: cand_dict}
         self._memory_profiles: Dict[str, List[Dict[str, Any]]] = {}
         self._memory_entities: Dict[str, List[Dict[str, Any]]] = {}
         self._memory_evidence: Dict[str, List[Dict[str, Any]]] = {}
@@ -101,21 +101,26 @@ class MongoDBService:
         return self._memory_investigations.get(inv_id)
 
     # -------------------------------------------------------------
-    # CANDIDATE CRUD
+    # CANDIDATE CRUD (Scoped strictly by investigationId)
     # -------------------------------------------------------------
     async def save_candidate(self, cand_data: Dict[str, Any]) -> bool:
         cand_id = cand_data.get("candidateId")
+        inv_id = cand_data.get("investigationId") or "UNKNOWN_INV"
         if not cand_id:
             return False
         
         data = dict(cand_data)
+        data["investigationId"] = inv_id
         data["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-        self._memory_candidates[cand_id] = data
+        
+        if inv_id not in self._memory_candidates:
+            self._memory_candidates[inv_id] = {}
+        self._memory_candidates[inv_id][cand_id] = data
         
         if self.is_connected and self.db is not None:
             try:
                 await self.db.candidates.update_one(
-                    {"candidateId": cand_id},
+                    {"investigationId": inv_id, "candidateId": cand_id},
                     {"$set": data},
                     upsert=True
                 )
@@ -124,15 +129,25 @@ class MongoDBService:
                 logger.error(f"Error saving candidate to MongoDB: {e}")
         return True
 
-    async def get_candidate(self, cand_id: str) -> Optional[Dict[str, Any]]:
+    async def get_candidate(self, cand_id: str, inv_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                doc = await self.db.candidates.find_one({"candidateId": cand_id}, {"_id": 0})
+                query = {"candidateId": cand_id}
+                if inv_id:
+                    query["investigationId"] = inv_id
+                doc = await self.db.candidates.find_one(query, {"_id": 0})
                 if doc:
                     return doc
             except Exception as e:
                 logger.error(f"Error fetching candidate from MongoDB: {e}")
-        return self._memory_candidates.get(cand_id)
+        
+        if inv_id and inv_id in self._memory_candidates:
+            return self._memory_candidates[inv_id].get(cand_id)
+        
+        for inv_cands in self._memory_candidates.values():
+            if cand_id in inv_cands:
+                return inv_cands[cand_id]
+        return None
 
     async def get_investigation_candidates(self, inv_id: str) -> List[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
@@ -143,7 +158,7 @@ class MongoDBService:
                     return results
             except Exception as e:
                 logger.error(f"Error fetching candidates for investigation from MongoDB: {e}")
-        return [c for c in self._memory_candidates.values() if c.get("investigationId") == inv_id]
+        return list(self._memory_candidates.get(inv_id, {}).values())
 
     # -------------------------------------------------------------
     # ENTITIES & RELATIONSHIPS

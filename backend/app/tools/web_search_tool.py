@@ -140,7 +140,8 @@ class WebSearchInvestigationTool(BaseInvestigationTool):
             data={
                 "queries": queries,
                 "webResultsCount": len(web_results),
-                "professionalProfile": prof_data
+                "professionalProfile": prof_data,
+                "results": [r.model_dump() for r in web_results]
             },
             evidence=evidence,
             entities=entities,

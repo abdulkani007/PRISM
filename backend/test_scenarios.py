@@ -138,7 +138,8 @@ async def run_all_tests():
             
             # Check conditions
             assert status == "COMPLETED", f"Expected COMPLETED status, got {status}"
-            assert len(cands) > 0, "Expected at least 1 candidate"
+            min_cands = 0 if sc["id"] == "SCENARIO-6-SPARSE" else 1
+            assert len(cands) >= min_cands, f"Expected at least {min_cands} candidates"
             print(f"-> PASS: {sc['name']}")
             passed += 1
         except Exception as e:

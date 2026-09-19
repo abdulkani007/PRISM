@@ -253,7 +253,9 @@ async def node_entity_resolution(state: InvestigationGraphState) -> Investigatio
         github_evidence=gh_evidence,
         youtube_evidence=None,
         professional_evidence=prof_evidence,
-        web_results=[]
+        web_results=web_data.get("results", []),
+        investigation_id=state.get("investigation_id", "INV-UNKNOWN"),
+        target_image_url_or_b64=inp.get("image")
     )
 
     candidates_dict = [c.model_dump() for c in candidates]
@@ -440,6 +442,9 @@ async def node_finalize(state: InvestigationGraphState) -> InvestigationGraphSta
         except Exception as e:
             logger.error(f"Groq analysis error: {e}")
             ai_summary = "AI evidence analysis generated based on deterministic cross-platform signal correlation."
+    else:
+        target_name = inp.get("name") or inp.get("githubUsername") or "Target"
+        ai_summary = f"No verified public candidate profiles could be correlated with sufficient confidence for '{target_name}'. Insufficient public footprint or corroborating anchors found."
 
     # 2. Ephemeral Biometric Cleanup (Strict Privacy Requirement)
     # The 128-d biometric vector is permanently purged from memory

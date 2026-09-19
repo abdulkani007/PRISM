@@ -96,6 +96,9 @@ class ConflictItem(BaseModel):
 
 class CandidateCard(BaseModel):
     candidateId: str
+    investigationId: Optional[str] = None
+    creationReason: str = "Discovered digital footprint correlation"
+    identityAnchors: List[str] = []
     name: str
     avatar: Optional[str] = None
     possibleRole: str = "Developer / Technology Student"

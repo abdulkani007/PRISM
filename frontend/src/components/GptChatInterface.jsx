@@ -34,7 +34,7 @@ import {
   Network,
   Clock
 } from 'lucide-react';
-import { executeInvestigationWorkflow } from '../lib/api';
+import { executeInvestigationWorkflow, getInvestigationState } from '../lib/api';
 import { RelationshipGraphView, ChronologicalTimelineView } from './InvestigationGraphAndTimeline';
 
 const GithubIcon = ({ className = "w-4 h-4" }) => (
@@ -111,20 +111,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
   });
 
   // Investigation sessions list
-  const [sessions, setSessions] = useState([
-    {
-      id: 'sess-1',
-      title: 'Abdulkani B — Sri Eshwar & abdulkani007',
-      date: 'Today',
-      active: true
-    },
-    {
-      id: 'sess-2',
-      title: 'Dr. Elena Rostova Stanford Audit',
-      date: 'Yesterday',
-      active: false
-    }
-  ]);
+  const [sessions, setSessions] = useState([]);
 
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -220,13 +207,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
     }
 
     if (!res.name) {
-      if (/abdulkani/i.test(rawText)) {
-        res.name = 'Abdulkani B';
-        res.college = 'Sri Eshwar College Of Engineering';
-        res.githubUsername = 'abdulkani007';
-      } else {
-        res.name = rawText.slice(0, 40);
-      }
+      res.name = rawText.slice(0, 40);
     }
 
     return res;
@@ -294,9 +275,18 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
       setMessages((prev) => [...prev, newAssistantMessage]);
 
       // Add to session history
-      const newTitle = `${finalInput.name || finalInput.githubUsername} — ${finalInput.college || 'Footprint Audit'}`;
+      const newTitle = `${finalInput.name || finalInput.githubUsername || 'Target'} — ${finalInput.college || 'Footprint Audit'}`;
       setSessions((prev) => [
-        { id: `sess-${Date.now()}`, title: newTitle, date: 'Just now', active: true },
+        {
+          id: data.investigationId || `sess-${Date.now()}`,
+          investigationId: data.investigationId,
+          title: newTitle,
+          date: 'Just now',
+          active: true,
+          data: data,
+          isLive: isLive,
+          userMessage: newUserMessage
+        },
         ...prev.map((s) => ({ ...s, active: false }))
       ]);
 
@@ -307,7 +297,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          error: 'An unexpected error occurred during the investigation workflow.',
+          error: `Investigation error: ${err.message || 'An unexpected error occurred during the investigation workflow.'}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -323,6 +313,12 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
     setAttachedImage(null);
     setTargetParams({ name: '', college: '', school: '', githubUsername: '', description: '' });
     setShowParamsDrawer(false);
+    setSelectedCandidateModal(null);
+    setCandidateModalTab('dossier');
+    setCurrentProgressStep('');
+    setCompletedSteps([]);
+    setIsInvestigating(false);
+    setSessions((prev) => prev.map((s) => ({ ...s, active: false })));
   };
 
   const handleCopyText = (text, id) => {
@@ -744,8 +740,57 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
           {sessions.map((sess) => (
             <button
               key={sess.id}
-              onClick={() => {
+              onClick={async () => {
                 setSessions((prev) => prev.map((s) => ({ ...s, active: s.id === sess.id })));
+                setSelectedCandidateModal(null);
+                setCandidateModalTab('dossier');
+                setInputPrompt('');
+                setAttachedImage(null);
+
+                // Fetch full investigation state from backend if investigationId is present
+                if (sess.investigationId) {
+                  try {
+                    const freshData = await getInvestigationState(sess.investigationId);
+                    setMessages([
+                      sess.userMessage || {
+                        id: `usr-${sess.id}`,
+                        role: 'user',
+                        text: `Investigate Target: ${freshData.input?.name || sess.title}`,
+                        inputParams: freshData.input,
+                        image: freshData.input?.image ? { url: freshData.input.image } : null,
+                        timestamp: 'Archive'
+                      },
+                      {
+                        id: `ai-${sess.id}`,
+                        role: 'assistant',
+                        data: freshData,
+                        isLive: true,
+                        timestamp: 'Archive'
+                      }
+                    ]);
+                    return;
+                  } catch (e) {
+                    console.warn('Failed to load investigation from server:', e);
+                  }
+                }
+
+                if (sess.data) {
+                  setMessages([
+                    sess.userMessage || {
+                      id: `usr-${sess.id}`,
+                      role: 'user',
+                      text: sess.title,
+                      timestamp: sess.date
+                    },
+                    {
+                      id: `ai-${sess.id}`,
+                      role: 'assistant',
+                      data: sess.data,
+                      isLive: sess.isLive,
+                      timestamp: sess.date
+                    }
+                  ]);
+                }
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs transition-all cursor-target ${
                 sess.active
@@ -919,7 +964,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                               <CheckCircle2 className="w-4 h-4 text-white" />
                               <span className="text-sm font-semibold text-white tracking-wide">INVESTIGATION COMPLETE</span>
                               <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/10">
-                                {msg.data?.candidates?.length || 4} RELATED PROFILES FOUND
+                                {msg.data?.candidates?.length ?? 0} RELATED PROFILES FOUND
                               </span>
                             </div>
                             <p className="text-xs text-neutral-400 mt-1">
@@ -936,7 +981,16 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                           </button>
                         </div>
 
-                        {/* SECTION 13 & 24: CANDIDATE RESULT CARDS (3-4 CARDS IN RESPONSIVE GRID) */}
+                        {/* SECTION 13 & 24: CANDIDATE RESULT CARDS */}
+                        {(!msg.data?.candidates || msg.data.candidates.length === 0) ? (
+                          <div className="p-8 rounded-3xl bg-[#0a0a0c] border border-white/15 text-center space-y-3">
+                            <Shield className="w-8 h-8 text-neutral-400 mx-auto opacity-70" />
+                            <h4 className="text-base font-semibold text-white">No Public Candidate Profiles Identified</h4>
+                            <p className="text-xs text-neutral-400 max-w-md mx-auto">
+                              PRISM multi-vector search found insufficient public digital footprint or verified identity anchors for this target. In accordance with zero-fabrication standards, no uncorroborated mock candidates are generated.
+                            </p>
+                          </div>
+                        ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {msg.data?.candidates?.map((cand, cIdx) => (
                             <div
@@ -1086,6 +1140,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                             </div>
                           ))}
                         </div>
+                        )}
 
                         {/* EVIDENCE OVERVIEW & AI INVESTIGATION ANALYSIS (Section 24) */}
                         <div className="p-5 rounded-3xl bg-neutral-950 border border-white/15 space-y-4">

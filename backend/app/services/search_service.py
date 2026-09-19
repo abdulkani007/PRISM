@@ -177,18 +177,22 @@ class SearchService:
                                 evidence_items.append(f"Public portfolio verified: {portfolio_matches[0]}")
 
                             # When Name, College, and GitHub repository independently match:
-                            status = "CORROBORATED"
+                            discovered_college = None
+                            if email_matches:
+                                _, email_domain = email_matches[0]
+                                if "sece.ac.in" in email_domain.lower() or "srieshwar" in email_domain.lower():
+                                    discovered_college = "Sri Eshwar College Of Engineering"
 
                             return ProfessionalEvidence(
-                                status=status,
+                                status="CORROBORATED",
                                 source="linkedin",
                                 reason="Discovered via public verified developer footprint and institutional email linkage.",
-                                name=clean_name or "Abdul Kani B",
-                                headline="Information Technology student and AI / Full Stack developer",
-                                college=clean_college or "Sri Eshwar College Of Engineering",
-                                education=education_list,
-                                experience=["AI / Full Stack Developer", "Information Technology Student"],
-                                skills=["Python", "JavaScript", "React", "FastAPI", "Machine Learning"],
+                                name=clean_name if clean_name else None,
+                                headline=f"Public developer footprint associated with {clean_name or clean_gh}",
+                                college=clean_college if clean_college else discovered_college,
+                                education=education_list if education_list else ([discovered_college] if discovered_college else []),
+                                experience=["Public Developer Footprint"],
+                                skills=["Software Development"],
                                 evidence=evidence_items,
                                 profileUrl=full_linkedin_url
                             )
