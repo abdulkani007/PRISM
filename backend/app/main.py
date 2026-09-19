@@ -13,6 +13,7 @@ from app.models.schemas import (
     InvestigationRequest,
     InvestigationResponse
 )
+from app.services.face_service import face_service
 from app.services.github_service import github_service
 from app.services.youtube_service import youtube_service
 from app.services.search_service import search_service
@@ -54,10 +55,33 @@ async def execute_full_investigation(inv_id: str):
     school = (inp.get("school") or "").strip()
     github_user = (inp.get("githubUsername") or inp.get("seed_handle") or "").strip().lstrip('@')
     desc = (inp.get("description") or "").strip()
+    raw_image = inp.get("image")
 
-    # Step 1: Query generation
+    # Step 1: Authorized Image Analysis (Section 1)
+    target_embedding = None
+    image_analysis_summary = None
+    if raw_image:
+        inv.status = "ANALYZING_IMAGE"
+        inv.currentStep = "IMAGE ANALYSIS"
+        img_res = face_service.analyze_face(raw_image)
+        
+        # Privacy: Keep 128-d embedding strictly ephemeral in local memory during execution
+        target_embedding = img_res.get("embedding")
+        
+        image_analysis_summary = {
+            "validated": img_res.get("validated", False),
+            "face_detected": img_res.get("face_detected", False),
+            "face_count": img_res.get("face_count", 0),
+            "confidence": img_res.get("confidence"),
+            "quality": img_res.get("quality"),
+            "message": img_res.get("message", "Processed")
+        }
+        inv.imageAnalysis = image_analysis_summary
+        logger.info(f"Image analysis for {inv_id}: face_detected={img_res.get('face_detected')}, quality={img_res.get('quality')}")
+
+    # Step 2: Context Search Query Generation (Section 3)
     inv.status = "SEARCHING"
-    inv.currentStep = "QUERY GENERATION"
+    inv.currentStep = "TEXT SEARCH"
     queries = search_service.generate_queries(
         name=name,
         college=college,
@@ -67,7 +91,7 @@ async def execute_full_investigation(inv_id: str):
     )
     inv.queries = queries
 
-    # Step 2: GitHub Search (Real API)
+    # Step 3: GitHub Search (Real API, Section 5)
     inv.currentStep = "GITHUB SEARCH"
     gh_evidence = None
     if github_user:
@@ -78,17 +102,25 @@ async def execute_full_investigation(inv_id: str):
         if users:
             gh_evidence = await github_service.analyze_user_intelligence(users[0]["login"])
 
-    # Step 3: YouTube Search (Real API)
+    # Step 4: YouTube Search (Real API, Section 6)
     inv.currentStep = "YOUTUBE SEARCH"
     yt_query = f'"{name}" "{college}"' if (name and college) else (f'"{name}"' if name else github_user)
     yt_evidence = await youtube_service.search_channels_and_videos(yt_query, target_name=name)
 
-    # Step 4: Public Web & Professional Search
-    inv.currentStep = "PUBLIC WEB SEARCH"
+    # Step 5: Professional & Public Web Search (LinkedIn discovery, Section 4)
+    inv.currentStep = "PROFESSIONAL SEARCH"
     web_results = await search_service.search_public_web(queries)
-    prof_evidence = await search_service.search_professional_profile(name, college, github_user)
+    prof_evidence = await search_service.search_professional_profile(
+        name=name,
+        college=college,
+        github_username=github_user,
+        description=desc
+    )
 
-    # Step 5: Correlation & Candidate Generation (Generates 3-4 Candidates)
+    # Step 6: Reverse Image Occurrence Search (Section 8)
+    reverse_image_results = await search_service.search_reverse_image_occurrences(raw_image)
+
+    # Step 7: Candidate Generation & Photo Comparison (Section 7, 9, 10, 11)
     inv.status = "CORRELATING"
     inv.currentStep = "PROFILE CORRELATION"
     
@@ -100,13 +132,18 @@ async def execute_full_investigation(inv_id: str):
         school=school,
         github_username=github_user,
         description=desc,
+        target_embedding=target_embedding,
+        image_analysis=image_analysis_summary,
         github_evidence=gh_evidence,
         youtube_evidence=yt_evidence,
         professional_evidence=prof_evidence,
         web_results=web_results
     )
 
-    # Step 6: AI Analysis using Groq
+    # Ephemeral Biometric Cleanup: Discard temporary face embedding from memory (Section 1)
+    target_embedding = None
+
+    # Step 8: AI Evidence Analysis using Groq (Section 12)
     inv.status = "ANALYZING"
     inv.currentStep = "AI ANALYSIS"
     if candidates:
@@ -121,9 +158,14 @@ async def execute_full_investigation(inv_id: str):
 
     inv.candidates = candidates
     inv.evidenceOverview = {
+        "image_analysis": {
+            "status": "AVAILABLE" if image_analysis_summary and image_analysis_summary.get("face_detected") else ("NO_FACE_DETECTED" if image_analysis_summary else "NOT_PROVIDED"),
+            "message": image_analysis_summary.get("message") if image_analysis_summary else "No image uploaded for visual comparison"
+        },
         "github": {
             "status": gh_evidence.status if gh_evidence else "UNAVAILABLE",
-            "reason": gh_evidence.reason if gh_evidence else "Username not provided"
+            "reason": gh_evidence.reason if gh_evidence else "Username not provided",
+            "public_repos": gh_evidence.totalRepositories if gh_evidence else 0
         },
         "youtube": {
             "status": yt_evidence.status if yt_evidence else "UNAVAILABLE",
@@ -131,7 +173,13 @@ async def execute_full_investigation(inv_id: str):
         },
         "professional_search": {
             "status": prof_evidence.status,
+            "source": "linkedin",
+            "profileUrl": prof_evidence.profileUrl,
             "reason": prof_evidence.reason
+        },
+        "reverse_image": {
+            "status": reverse_image_results.get("status", "SOURCE_UNAVAILABLE"),
+            "reason": reverse_image_results.get("reason", "Reverse search unconfigured")
         },
         "public_web": {
             "status": "AVAILABLE" if web_results else "UNAVAILABLE",
@@ -152,6 +200,7 @@ def read_root():
         "system": "PRISM Digital Identity Intelligence Engine",
         "version": settings.VERSION,
         "status": "ONLINE",
+        "vision_pipeline": "OPENCV_YUNET_SFACE_ONNX",
         "apis": {
             "github": "CONFIGURED" if settings.GITHUB_TOKEN else "UNAUTHENTICATED",
             "youtube": "CONFIGURED" if settings.YOUTUBE_API_KEY else "DISABLED",
@@ -163,6 +212,7 @@ def read_root():
 def health_check():
     return {
         "status": "HEALTHY",
+        "vision_pipeline": "OPENCV_YUNET_SFACE_ONNX",
         "github_api": "CONFIGURED" if settings.GITHUB_TOKEN else "UNAUTHENTICATED",
         "youtube_api": "CONFIGURED" if settings.YOUTUBE_API_KEY else "DISABLED",
         "groq_lpu": "ENABLED" if settings.GROQ_API_KEY else "FALLBACK"
@@ -183,6 +233,7 @@ async def create_investigation(req: InvestigationCreateRequest):
         queries=[],
         candidates=[],
         evidenceOverview={},
+        imageAnalysis=None,
         aiSummary="",
         clarificationQuestions=[
             "Do you know the person's college or university?",
@@ -243,7 +294,6 @@ async def clarify_investigation(inv_id: str, clarification: Dict[str, Any]):
     if inv_id not in investigations_db:
         raise HTTPException(status_code=404, detail="Investigation ID not found")
     inv = investigations_db[inv_id]
-    # Merge clarification into input
     for k, v in clarification.items():
         if v:
             inv.input[k] = v
@@ -258,7 +308,6 @@ async def legacy_investigate(req: InvestigationRequest):
     inv_id = f"INV-{uuid.uuid4().hex[:8].upper()}"
     now_str = datetime.utcnow().isoformat() + "Z"
     
-    # Map legacy inputs to standard schema
     norm_input = {
         "name": req.target_name or req.name or req.seed_handle,
         "college": req.school_college or req.college,
@@ -277,6 +326,7 @@ async def legacy_investigate(req: InvestigationRequest):
         queries=[],
         candidates=[],
         evidenceOverview={},
+        imageAnalysis=None,
         aiSummary="",
         clarificationQuestions=[]
     )

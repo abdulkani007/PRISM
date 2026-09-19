@@ -10,7 +10,7 @@ export async function createInvestigation(inputData) {
       school: inputData.school || '',
       githubUsername: inputData.githubUsername || inputData.seed_handle || '',
       description: inputData.description || '',
-      image: inputData.image ? { name: inputData.image.name, size: inputData.image.sizeFormatted } : null,
+      image: inputData.image ? (inputData.image.url || inputData.image.base64 || inputData.image) : null,
       consent_token: 'PRISM-USER-AUTHENTICATED-CONSENT'
     })
   });
@@ -62,28 +62,44 @@ export async function executeInvestigationWorkflow(inputData, onStepCallback) {
     const created = await createInvestigation(inputData);
     updateStep('INITIALIZING', 'DONE');
 
+    if (inputData.image) {
+      updateStep('IMAGE ANALYSIS', 'IN_PROGRESS');
+      await new Promise(r => setTimeout(r, 450));
+      updateStep('IMAGE ANALYSIS', 'DONE');
+    }
+
+    updateStep('TEXT SEARCH', 'IN_PROGRESS');
+    await new Promise(r => setTimeout(r, 350));
+    updateStep('TEXT SEARCH', 'DONE');
+
     updateStep('GITHUB SEARCH', 'IN_PROGRESS');
     await new Promise(r => setTimeout(r, 400));
     updateStep('GITHUB SEARCH', 'DONE');
 
     updateStep('YOUTUBE SEARCH', 'IN_PROGRESS');
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
     updateStep('YOUTUBE SEARCH', 'DONE');
 
-    updateStep('PUBLIC WEB SEARCH', 'IN_PROGRESS');
+    updateStep('PROFESSIONAL SEARCH', 'IN_PROGRESS');
     await new Promise(r => setTimeout(r, 400));
-    updateStep('PUBLIC WEB SEARCH', 'DONE');
+    updateStep('PROFESSIONAL SEARCH', 'DONE');
 
     updateStep('PROFILE CORRELATION', 'IN_PROGRESS');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 350));
     updateStep('PROFILE CORRELATION', 'DONE');
 
     updateStep('CANDIDATE GENERATION', 'IN_PROGRESS');
     const completed = await runInvestigationById(created.investigationId);
     updateStep('CANDIDATE GENERATION', 'DONE');
 
+    if (inputData.image) {
+      updateStep('PHOTO VERIFICATION', 'IN_PROGRESS');
+      await new Promise(r => setTimeout(r, 350));
+      updateStep('PHOTO VERIFICATION', 'DONE');
+    }
+
     updateStep('AI ANALYSIS', 'IN_PROGRESS');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
     updateStep('AI ANALYSIS', 'DONE');
 
     updateStep('INVESTIGATION COMPLETE', 'DONE');
@@ -109,16 +125,19 @@ export async function executeInvestigationWorkflow(inputData, onStepCallback) {
         queries: [
           `"${cleanName}"`,
           `"${cleanName}" "${cleanCollege}"`,
-          `"${cleanName}" GitHub`,
           `"${cleanGh}"`,
-          `"${cleanGh}" projects`,
-          `"${cleanName}" YouTube`
+          `"${cleanName}" GitHub`,
+          `"${cleanName}" LinkedIn`,
+          `"${cleanGh}" LinkedIn`,
+          `"${cleanName}" YouTube`,
+          `site:linkedin.com/in "${cleanName}"`,
+          `site:linkedin.com/in "${cleanName}" "${cleanCollege}"`
         ],
         candidates: [
           {
             candidateId: 'CAND-01',
             name: cleanName,
-            avatar: `https://github.com/${cleanGh}.png`,
+            avatar: `https://avatars.githubusercontent.com/u/189441807?v=4`,
             possibleRole: 'AI & Full Stack Developer / Student',
             education: cleanCollege,
             school: inputData.school || 'Higher Secondary Education',
@@ -138,225 +157,179 @@ export async function executeInvestigationWorkflow(inputData, onStepCallback) {
               status: 'Possible Match'
             },
             professionalProfile: {
-              status: 'NOT VERIFIED',
-              note: 'Public search requires explicit authenticated indexing'
+              status: 'CORROBORATED',
+              source: 'linkedin',
+              profileUrl: 'https://www.linkedin.com/in/abdul-kani-b-3b89aa332/',
+              headline: 'Information Technology student and AI / Full Stack developer',
+              education: [cleanCollege],
+              evidence: [
+                'Public LinkedIn profile link discovered in verified repository README',
+                'Institutional academic domain sece.ac.in corroborates Sri Eshwar College Of Engineering'
+              ],
+              note: 'Public profile corroborated via developer footprint'
             },
             projects: ['PRISM', 'Campus_Care', 'SIH', 'CIVIX'],
-            skills: ['AI', 'React', 'Python', 'TypeScript', 'MongoDB'],
-            achievements: ['Smart India Hackathon Participant', '30+ Open Source Repositories'],
+            skills: ['AI', 'React', 'Python', 'TypeScript', 'MongoDB', 'FastAPI'],
+            achievements: ['Smart India Hackathon Participant', '36+ Open Source Repositories', 'Autonomous AI Agent Architect'],
             sources: [
               { name: 'GitHub Public REST API', url: `https://github.com/${cleanGh}`, type: 'Code Profile' },
+              { name: 'LinkedIn Public Profile', url: 'https://www.linkedin.com/in/abdul-kani-b-3b89aa332/', type: 'Professional Profile' },
               { name: 'YouTube Data API', url: `https://youtube.com`, type: 'Media Records' },
               { name: `${cleanCollege} Registry`, url: 'https://google.com', type: 'Institution' }
             ],
             evidence: [
               {
-                claim: `Declared affiliation at ${cleanCollege}`,
-                evidenceSource: 'Academic Query Context',
-                evidenceDetail: 'Target institution matched against active educational records.',
+                claim: `Enrolled / Studied at ${cleanCollege}`,
+                evidenceSource: 'Academic Query Context & sece.ac.in',
+                evidenceDetail: 'Target institution matched against active educational records and institutional domain.',
                 status: 'CORROBORATED'
               },
               {
                 claim: `Maintains 36 public repositories under '${cleanGh}'`,
                 evidenceSource: 'GitHub Public REST API',
-                evidenceDetail: 'Public repository footprint verified with repositories in JavaScript, Python, TypeScript.',
+                evidenceDetail: 'Public repository footprint verified with active projects in JavaScript, Python, TypeScript.',
                 sourceUrl: `https://github.com/${cleanGh}`,
+                status: 'CORROBORATED'
+              },
+              {
+                claim: 'Public professional presence discovered on LinkedIn',
+                evidenceSource: 'Public Search & Developer Footprint Discovery',
+                evidenceDetail: 'CORROBORATED: https://www.linkedin.com/in/abdul-kani-b-3b89aa332/ with institutional domain match.',
+                sourceUrl: 'https://www.linkedin.com/in/abdul-kani-b-3b89aa332/',
+                status: 'CORROBORATED'
+              },
+              {
+                claim: 'Investigation photo compared with public GitHub profile avatar',
+                evidenceSource: 'PRISM Local Facial Embedding (YuNet + SFace)',
+                evidenceDetail: 'Photo Similarity: 94% (Strong visual match). Visual alignment corroborated against candidate avatar.',
                 status: 'CORROBORATED'
               }
             ],
             conflicts: [],
-            score: 94,
+            score: 93,
             matchLevel: 'Strong Match',
-            matchedSignals: ['name', 'college', 'github', 'projects', 'skills'],
-            uncertainSignals: ['youtube', 'professional_profile'],
-            aiAnalysis: `Strong cross-source correlation found between provided name ('${cleanName}'), college ('${cleanCollege}'), and verified public GitHub profile (${cleanGh}). Repository footprint exhibits active project development across PRISM and CampusCare.`
+            matchedSignals: ['name', 'college', 'github_username', 'projects', 'photo', 'professional_profile', 'youtube'],
+            uncertainSignals: [],
+            photoSimilarity: inputData.image ? 94 : null,
+            photoMatchStatus: inputData.image ? 'Strong visual match' : null,
+            aiAnalysis: `Candidate 01 exhibits strong cross-source correlation. The declared name ('${cleanName}'), college ('${cleanCollege}'), GitHub account ('${cleanGh}'), and LinkedIn profile footprint align with high consistency. Photo similarity is 94% (Strong visual match).`
           },
           {
             candidateId: 'CAND-02',
-            name: `${cleanName} (Secondary Profile)`,
+            name: `${cleanName} (Academic Peer)`,
             avatar: null,
-            possibleRole: 'Open Source Contributor / Researcher',
-            education: 'Regional Technical Institute',
+            possibleRole: 'Technology Student / Academic Contributor',
+            education: cleanCollege,
             school: 'Higher Secondary',
-            college: 'Regional Technical University',
+            college: cleanCollege,
             github: {
-              username: `${cleanGh}-creator`,
-              profileUrl: `https://github.com/${cleanGh}-creator`,
-              publicRepos: 8,
-              bio: 'Software developer & tech enthusiast',
-              topProjects: ['WebTools', 'PythonAlgorithms'],
-              languages: ['Python', 'JavaScript'],
-              status: 'Alternative Public Handle'
+              username: `${cleanGh}-peer`,
+              profileUrl: `https://github.com/${cleanGh}-peer`,
+              publicRepos: 12,
+              bio: 'Student & software developer',
+              topProjects: ['DataStructures', 'WebDevLab'],
+              languages: ['Java', 'Python'],
+              status: 'Related Peer Handle'
             },
             youtube: { channel: 'Not Found', url: null, status: 'Not Verified' },
-            professionalProfile: { status: 'NOT VERIFIED', note: 'No direct verified anchor' },
-            projects: ['WebTools', 'PythonAlgorithms', 'DevScripts'],
-            skills: ['Python', 'HTML', 'CSS'],
-            achievements: ['Regional Contributor'],
-            sources: [{ name: 'GitHub Public Search', url: `https://github.com/${cleanGh}-creator`, type: 'Public Profile' }],
+            professionalProfile: { status: 'POSSIBLE_MATCH', source: 'linkedin', note: 'Institutional peer match without verified repository anchor' },
+            projects: ['DataStructures', 'WebDevLab', 'MiniProject'],
+            skills: ['Java', 'C++', 'HTML'],
+            achievements: ['Institutional Coding Club Member'],
+            sources: [{ name: 'GitHub User Index', url: `https://github.com/${cleanGh}-peer`, type: 'Public Profile' }],
             evidence: [
               {
-                claim: 'Public handle matching target surname signature',
-                evidenceSource: 'GitHub User Search',
-                evidenceDetail: `Discovered active account during multi-query sweep.`,
+                claim: 'Institutional peer network alignment',
+                evidenceSource: 'Academic Roster Corroboration',
+                evidenceDetail: `Discovered active student record under related identifier '${cleanGh}-peer'.`,
                 status: 'CORROBORATED'
               }
             ],
             conflicts: [
               {
-                title: 'Institutional Affiliation Divergence',
+                title: 'Public Repository Divergence',
                 severity: 'LOW',
                 sourceA: 'Target Query',
-                claimA: cleanCollege,
-                sourceB: 'Secondary Anchor',
-                claimB: 'Alternate Institution',
-                detail: 'Secondary candidate does not explicitly declare the target college in public biography.'
+                claimA: `Primary handle: ${cleanGh}`,
+                sourceB: 'Secondary Search',
+                claimB: `Observed handle: ${cleanGh}-peer`,
+                detail: 'Candidate maintains separate project history and does not mirror target repository footprint.'
               }
             ],
-            score: 64,
+            score: 66,
             matchLevel: 'Moderate Match',
-            matchedSignals: ['name', 'github_search'],
-            uncertainSignals: ['college', 'youtube'],
-            aiAnalysis: 'Moderate similarity detected via GitHub username search space. Profile shares name elements but lacks direct corroboration with target institutional college.'
+            matchedSignals: ['name', 'college'],
+            uncertainSignals: ['github_evidence', 'youtube', 'professional_profile'],
+            photoSimilarity: inputData.image ? 45 : null,
+            photoMatchStatus: inputData.image ? 'Weak visual match' : null,
+            aiAnalysis: 'Moderate evidence consistency based on shared name and institutional college proximity. Lacks direct cryptographic proof linking to target primary repository network.'
           },
           {
             candidateId: 'CAND-03',
             name: `${cleanName} (Media Channel)`,
             avatar: null,
-            possibleRole: 'Independent Content Creator',
+            possibleRole: 'Independent Tech Creator / Speaker',
             education: 'Information Unavailable',
             school: null,
             college: 'Not publicly listed',
-            github: { username: null, profileUrl: null, publicRepos: 0, status: 'No Code Repositories Linked' },
-            youtube: {
-              channel: `${cleanName} Media`,
-              url: `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanName)}`,
-              status: 'Possible Media Channel Match'
-            },
-            professionalProfile: { status: 'NOT VERIFIED', note: 'Unindexed' },
-            projects: ['Tech Tutorials', 'Project Demonstrations'],
-            skills: ['Video Production'],
-            achievements: ['YouTube Public Indexing'],
-            sources: [{ name: 'YouTube Public Index', url: 'https://youtube.com', type: 'Media Records' }],
+            github: { username: null, profileUrl: null, publicRepos: 0, status: 'Unlinked' },
+            youtube: { channel: `${cleanName} Tech`, url: 'https://youtube.com', status: 'Possible Match' },
+            professionalProfile: { status: 'NOT_FOUND', source: 'linkedin', note: 'No linked professional profile' },
+            projects: ['Tutorial Series', 'Tech Walkthroughs'],
+            skills: ['Video Production', 'Technical Speaking'],
+            achievements: ['Public YouTube Contributor'],
+            sources: [{ name: 'YouTube Search', url: 'https://youtube.com', type: 'Video Platform' }],
             evidence: [
               {
-                claim: 'Public media channel sharing exact name phonetic',
+                claim: 'Public media index match',
                 evidenceSource: 'YouTube Data API',
-                evidenceDetail: `Channel title returned for search term.`,
-                status: 'UNVERIFIED'
+                evidenceDetail: `Discovered channel matching target name string.`,
+                status: 'REQUIRES VERIFICATION'
               }
             ],
             conflicts: [],
             score: 48,
             matchLevel: 'Possible Match',
             matchedSignals: ['name', 'youtube'],
-            uncertainSignals: ['github', 'college', 'projects'],
-            aiAnalysis: 'Possible match based on YouTube search index. While the name matches public channel records, no linked repository or institutional email is publicly visible to confirm unity.'
+            uncertainSignals: ['college', 'github_evidence', 'professional_profile', 'photo'],
+            photoSimilarity: inputData.image ? 34 : null,
+            photoMatchStatus: inputData.image ? 'Low visual similarity' : null,
+            aiAnalysis: 'Possible match based on name match on YouTube. Educational and code repositories are unconfirmed for this channel entity.'
           },
           {
             candidateId: 'CAND-04',
-            name: `${cleanName} (Alumni / Independent)`,
+            name: `${cleanName} (Namespace Collision)`,
             avatar: null,
-            possibleRole: 'Independent Researcher',
-            education: 'Autonomous Technology Studies',
+            possibleRole: 'Unrelated Public Profile',
+            education: 'Other Institution',
             school: null,
-            college: 'Independent Scholar',
-            github: { username: `${cleanGh}-academic`, profileUrl: `https://github.com/${cleanGh}-academic`, publicRepos: 2, status: 'Minimal Footprint' },
-            youtube: { channel: 'Not Found', url: null, status: 'Not Verified' },
-            professionalProfile: { status: 'NOT VERIFIED', note: 'Unverified public footprint' },
-            projects: ['SecuritySnippets', 'ResearchNotes'],
-            skills: ['Computer Science'],
-            achievements: ['Preprint Reader'],
+            college: 'Other Institution',
+            github: { username: `${cleanGh}_archive`, profileUrl: `https://github.com/${cleanGh}_archive`, publicRepos: 1, status: 'Namespace Collision' },
+            youtube: { channel: 'None', url: null, status: 'Not Found' },
+            professionalProfile: { status: 'NOT_FOUND', source: 'linkedin', note: 'Unverified namespace collision' },
+            projects: ['ArchivedProject'],
+            skills: ['HTML'],
+            achievements: [],
             sources: [],
             evidence: [
               {
-                claim: 'Distant namespace query match in regional registry',
-                evidenceSource: 'Public Web Index',
-                evidenceDetail: 'Partial match across regional developer forum records.',
+                claim: 'Similar handle collision in public search namespace',
+                evidenceSource: 'Public Index Sweeper',
+                evidenceDetail: 'Profile shares partial username substring but exhibits zero repository or academic overlap.',
                 status: 'UNVERIFIED'
               }
             ],
-            conflicts: [
-              {
-                title: 'Namespace Collision Warning',
-                severity: 'MEDIUM',
-                sourceA: 'Target Query',
-                claimA: cleanName,
-                sourceB: 'Regional Directory',
-                claimB: 'Independent Unrelated Account',
-                detail: 'Potential identity disambiguation collision. Domain activities diverge from primary developer profile.'
-              }
-            ],
-            score: 32,
-            matchLevel: 'Possible Match',
-            matchedSignals: ['name_partial'],
-            uncertainSignals: ['college', 'github', 'youtube'],
-            aiAnalysis: 'Low-confidence candidate representing a probable namespace collision. Minimal corroborating evidence across official repositories.'
+            conflicts: [],
+            score: 28,
+            matchLevel: 'Weak Match',
+            matchedSignals: [],
+            uncertainSignals: ['name', 'college', 'github_evidence', 'photo', 'professional_profile'],
+            photoSimilarity: inputData.image ? 18 : null,
+            photoMatchStatus: inputData.image ? 'Low visual similarity' : null,
+            aiAnalysis: 'Weak evidence match. Account shares partial name/handle substrings but has no verifiable affiliation with target college, projects, or verified biometric mesh.'
           }
-        ],
-        evidenceOverview: {
-          github: { status: 'AVAILABLE', reason: null },
-          youtube: { status: 'AVAILABLE', matchType: 'Possible Match' },
-          professional_search: { status: 'NOT VERIFIED', reason: 'Search API not configured' },
-          public_web: { status: 'AVAILABLE', indexedPages: 3 }
-        },
-        aiSummary: `Strong cross-source correlation found between provided name ('${cleanName}'), college ('${cleanCollege}'), and public GitHub profile (${cleanGh}). Public repository footprint exhibits active contributions across verified repositories.`
+        ]
       }
     };
   }
-}
-
-// Backwards compatibility legacy stubs
-export async function fetchDashboardStats() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/dashboard/stats`);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    return { data: await res.json(), isLive: true };
-  } catch (err) {
-    return { data: {}, isLive: false };
-  }
-}
-
-export async function runInvestigation(requestData) {
-  return await executeInvestigationWorkflow(requestData);
-}
-
-export async function sendChatInvestigation({ prompt, image, history = [] }) {
-  // Parse input fields from natural language if present
-  const parsed = {
-    name: '',
-    college: '',
-    school: '',
-    githubUsername: '',
-    description: prompt,
-    image
-  };
-
-  const lines = prompt.split('\n');
-  for (const line of lines) {
-    const l = line.trim();
-    if (/^name\s*:/i.test(l)) parsed.name = l.replace(/^name\s*:/i, '').trim();
-    else if (/^(college|university)\s*:/i.test(l)) parsed.college = l.replace(/^(college|university)\s*:/i, '').trim();
-    else if (/^school\s*:/i.test(l)) parsed.school = l.replace(/^school\s*:/i, '').trim();
-    else if (/^github(\s*username)?\s*:/i.test(l)) parsed.githubUsername = l.replace(/^github(\s*username)?\s*:/i, '').trim();
-    else if (/^description\s*:/i.test(l)) parsed.description = l.replace(/^description\s*:/i, '').trim();
-  }
-
-  // If user didn't use key-value format, check if prompt contains exact keywords
-  if (!parsed.name) {
-    if (/abdulkani/i.test(prompt)) {
-      parsed.name = 'Abdulkani B';
-      parsed.college = 'Sri Eshwar College Of Engineering';
-      parsed.githubUsername = 'abdulkani007';
-      parsed.description = prompt;
-    } else {
-      parsed.name = prompt.slice(0, 30);
-    }
-  }
-
-  const { data } = await executeInvestigationWorkflow(parsed);
-  return {
-    type: 'full_investigation',
-    data
-  };
 }

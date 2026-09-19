@@ -54,7 +54,8 @@ class YouTubeEvidence(BaseModel):
     videos: List[YouTubeVideo] = []
 
 class ProfessionalEvidence(BaseModel):
-    status: str = "NOT VERIFIED"  # "VERIFIED" | "NOT VERIFIED" | "UNAVAILABLE"
+    status: str = "NOT VERIFIED"  # "CORROBORATED" | "POSSIBLE_MATCH" | "NOT_FOUND" | "NOT VERIFIED" | "UNAVAILABLE"
+    source: str = "linkedin"
     reason: Optional[str] = "Search API not configured"
     name: Optional[str] = None
     headline: Optional[str] = None
@@ -62,9 +63,12 @@ class ProfessionalEvidence(BaseModel):
     school: Optional[str] = None
     company: Optional[str] = None
     role: Optional[str] = None
+    education: List[str] = []
+    experience: List[str] = []
     skills: List[str] = []
     projects: List[str] = []
     achievements: List[str] = []
+    evidence: List[str] = []
     profileUrl: Optional[str] = None
 
 class WebSearchResult(BaseModel):
@@ -111,6 +115,10 @@ class CandidateCard(BaseModel):
     matchLevel: str = "Possible Match"  # "Strong Match" | "Moderate Match" | "Possible Match"
     matchedSignals: List[str] = []
     uncertainSignals: List[str] = []
+    photoSimilarity: Optional[int] = None
+    photoMatchStatus: Optional[str] = None
+    photoEvidence: Optional[Dict[str, Any]] = None
+    reverseImageMatches: List[Dict[str, Any]] = []
     aiAnalysis: str = ""
 
 class InvestigationCreateRequest(BaseModel):
@@ -136,6 +144,7 @@ class InvestigationState(BaseModel):
     queries: List[str] = []
     candidates: List[CandidateCard] = []
     evidenceOverview: Dict[str, Any] = {}
+    imageAnalysis: Optional[Dict[str, Any]] = None
     aiSummary: str = ""
     clarificationQuestions: List[str] = []
 

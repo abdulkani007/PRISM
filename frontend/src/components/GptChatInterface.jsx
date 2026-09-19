@@ -29,7 +29,8 @@ import {
   School,
   Briefcase,
   Code2,
-  Award
+  Award,
+  Camera
 } from 'lucide-react';
 import { executeInvestigationWorkflow } from '../lib/api';
 
@@ -257,13 +258,15 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
 
     const workflowSteps = [
       'INITIALIZING',
+      'IMAGE ANALYSIS',
+      'TEXT SEARCH',
       'GITHUB SEARCH',
       'YOUTUBE SEARCH',
-      'PUBLIC WEB SEARCH',
+      'PROFESSIONAL SEARCH',
       'PROFILE CORRELATION',
       'CANDIDATE GENERATION',
+      'PHOTO VERIFICATION',
       'AI ANALYSIS',
-      'FINALIZING',
       'INVESTIGATION COMPLETE'
     ];
 
@@ -513,12 +516,59 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                     <Briefcase className="w-4 h-4" />
                     <span>Professional / LinkedIn</span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-neutral-300 border border-white/10 font-mono">
-                    {selectedCandidateModal.professionalProfile?.status}
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-mono border ${
+                    selectedCandidateModal.professionalProfile?.status === 'CORROBORATED'
+                      ? 'bg-white/15 text-white border-white/30 font-bold'
+                      : 'bg-white/5 text-neutral-400 border-white/10'
+                  }`}>
+                    {selectedCandidateModal.professionalProfile?.status || 'NOT VERIFIED'}
                   </span>
                 </div>
-                <p className="text-neutral-400 text-[11px]">
-                  {selectedCandidateModal.professionalProfile?.note || 'Source unindexed or requires explicit authorization.'}
+                {selectedCandidateModal.professionalProfile?.profileUrl && (
+                  <a
+                    href={selectedCandidateModal.professionalProfile.profileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-white underline cursor-target"
+                  >
+                    <span>Open Public LinkedIn Profile</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                <p className="text-neutral-300 text-[11px]">
+                  {selectedCandidateModal.professionalProfile?.headline || selectedCandidateModal.professionalProfile?.note || 'Source unindexed or requires explicit authorization.'}
+                </p>
+                {selectedCandidateModal.professionalProfile?.evidence?.map((evItem, evIdx) => (
+                  <div key={evIdx} className="text-[10px] text-neutral-400 flex items-start gap-1">
+                    <span className="text-white">✓</span>
+                    <span>{evItem}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* PHOTO VERIFICATION & VISUAL SIMILARITY (Section 7) */}
+            <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                  <Camera className="w-4 h-4" />
+                  <span>Photo Verification & Visual Similarity</span>
+                </div>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 text-white font-mono border border-white/20">
+                  {selectedCandidateModal.photoMatchStatus || 'No photo evaluated'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-neutral-950 p-3 rounded-xl border border-white/5">
+                <div>
+                  <span className="text-neutral-400 block text-[10px]">Photo Similarity</span>
+                  <span className="text-xl font-bold font-mono text-white">
+                    {selectedCandidateModal.photoSimilarity !== null && selectedCandidateModal.photoSimilarity !== undefined
+                      ? `${selectedCandidateModal.photoSimilarity}%`
+                      : 'N/A'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-400 max-w-sm text-right italic">
+                  Evaluated as one weighted signal in overall evidence consistency. Not an absolute identity probability.
                 </p>
               </div>
             </div>
@@ -893,8 +943,26 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                                     <span className="text-neutral-300 truncate">{cand.youtube?.status || 'Not Verified'}</span>
                                   </div>
                                   <div className="p-2 rounded-xl bg-black border border-white/5 truncate">
-                                    <span className="text-neutral-500 block">Professional</span>
-                                    <span className="text-neutral-300 truncate">{cand.professionalProfile?.status || 'NOT VERIFIED'}</span>
+                                    <span className="text-neutral-500 block">LinkedIn</span>
+                                    <span className={`truncate ${cand.professionalProfile?.status === 'CORROBORATED' ? 'text-white font-bold' : 'text-neutral-300'}`}>
+                                      {cand.professionalProfile?.status || 'NOT VERIFIED'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Photo Similarity (Section 10) */}
+                                <div className="p-2.5 rounded-xl bg-black border border-white/5 flex items-center justify-between text-[11px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <Camera className="w-3.5 h-3.5 text-white shrink-0" />
+                                    <span className="font-mono text-white font-medium">Photo Similarity</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-white font-mono font-bold">
+                                      {cand.photoSimilarity !== null && cand.photoSimilarity !== undefined ? `${cand.photoSimilarity}%` : 'N/A'}
+                                    </span>
+                                    {cand.photoMatchStatus && (
+                                      <span className="block text-[9px] text-neutral-400 font-mono">{cand.photoMatchStatus}</span>
+                                    )}
                                   </div>
                                 </div>
 
@@ -929,6 +997,12 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                                   {cand.matchedSignals?.includes('college') && <span className="text-white">✓ College</span>}
                                   {cand.matchedSignals?.includes('github_username') && <span className="text-white">✓ GitHub</span>}
                                   {cand.matchedSignals?.includes('projects') && <span className="text-white">✓ Projects</span>}
+                                  {cand.photoSimilarity !== null && cand.photoSimilarity !== undefined && cand.photoSimilarity >= 65 ? (
+                                    <span className="text-white">✓ Photo</span>
+                                  ) : cand.photoSimilarity ? (
+                                    <span className="text-neutral-400">◐ Photo</span>
+                                  ) : null}
+                                  {cand.professionalProfile?.status === 'CORROBORATED' && <span className="text-white">✓ LinkedIn</span>}
                                   {cand.matchedSignals?.includes('youtube') ? <span className="text-white">✓ YouTube</span> : <span className="text-neutral-500">◐ YouTube</span>}
                                 </div>
 

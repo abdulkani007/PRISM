@@ -7,8 +7,8 @@ logger = logging.getLogger("prism.groq")
 
 class GroqService:
     def __init__(self):
-        self.api_key = settings.GROQ_API_KEY.strip()
-        self.model = settings.GROQ_MODEL.strip() or "groq/compound-mini"
+        self.api_key = settings.GROQ_API_KEY.strip() if settings.GROQ_API_KEY else ""
+        self.model = settings.GROQ_MODEL.strip() if settings.GROQ_MODEL else "groq/compound-mini"
         self.client = None
         if self.api_key:
             try:
@@ -18,29 +18,62 @@ class GroqService:
                 logger.error(f"Failed to initialize Groq client: {e}")
                 self.client = None
 
-    async def analyze_candidate_evidence(self, candidate_data: Dict[str, Any], query_input: Dict[str, Any]) -> str:
+    async def analyze_candidate_evidence(
+        self,
+        candidate_data: Dict[str, Any],
+        query_input: Dict[str, Any]
+    ) -> str:
         """
-        Sends structured candidate evidence to Groq to generate an explainable,
-        evidence-based analysis. Strictly constrained never to hallucinate private data.
+        Sends structured candidate evidence, matched signals, photo similarity,
+        and detected conflicts to Groq to generate a structured synthesis.
+        Adheres strictly to zero-hallucination rules (Section 12).
         """
+        cand_name = candidate_data.get("name") or "Candidate"
+        college = candidate_data.get("college") or "Not provided"
+        github = candidate_data.get("github", {})
+        repos = github.get("publicRepos", 0)
+        projects = candidate_data.get("projects", [])
+        photo_sim = candidate_data.get("photoSimilarity")
+        photo_status = candidate_data.get("photoMatchStatus") or "Unverified"
+        prof_status = candidate_data.get("professionalProfile", {}).get("status")
+        yt_status = candidate_data.get("youtube", {}).get("status")
+        score = candidate_data.get("score", 50)
+        match_lvl = candidate_data.get("matchLevel", "Possible Match")
+
         fallback_summary = (
-            f"Strong correlation was found between the provided name ('{candidate_data.get('name')}'), "
-            f"declared college ('{candidate_data.get('college')}'), and verified public GitHub repository footprint. "
-            f"Public projects ({', '.join(candidate_data.get('projects', [])[:3])}) corroborate software development focus. "
-            f"Professional profile remains NOT VERIFIED (unindexed to prevent unauthorized scraping). "
-            f"YouTube presence represents a possible match requiring additional verification."
+            f"Candidate 01 exhibits {match_lvl.lower()} ({score}% consistency) across public sources. "
+            f"The provided name, college ('{college}'), GitHub handle ('{github.get('username')}'), and "
+            f"repository footprint ({repos} public repos including {', '.join(projects[:3])}) align with high consistency. "
+            + (f"Photo similarity is {photo_sim}% ({photo_status}) against public profile assets. " if photo_sim else "")
+            + f"Professional profile on LinkedIn is {prof_status}. "
+            f"YouTube presence remains {yt_status}."
         )
 
         if not self.client:
             return fallback_summary
 
         system_prompt = (
-            "You are PRISM's AI Evidence Analyst. Your role is strictly to synthesize and explain "
-            "the provided public evidence without hallucinating or inventing any private data, companies, "
-            "schools, or social profiles. If evidence is missing, state 'Not verified' or 'Not found'. "
-            "Provide an objective, concise summary covering: (1) Match explanation, (2) Strong signals, "
-            "(3) Weak signals, and (4) Cross-platform relationships."
+            "You are PRISM's AI Evidence Analyst. Your task is to evaluate and synthesize only the "
+            "concrete public evidence retrieved by the investigation backend. Do NOT hallucinate, "
+            "assume, or invent any private facts, companies, or social records. "
+            "Format your analysis clearly with these structured sections:\n"
+            "WHY THIS CANDIDATE MATCHES:\n"
+            "STRONG EVIDENCE:\n"
+            "WEAK EVIDENCE:\n"
+            "CONFLICTS:\n"
+            "MISSING INFORMATION:\n"
+            "CROSS-PLATFORM RELATIONSHIPS:\n"
+            "FINAL SUMMARY:\n"
+            "Keep each section concise (1-2 sentences). Never claim absolute 100% identity proof."
         )
+
+        conflicts_text = "\n".join([
+            f"- {c.get('title')}: {c.get('detail')}" for c in candidate_data.get("conflicts", [])
+        ]) or "None detected"
+
+        sources_text = "\n".join([
+            f"- {s.get('name')} ({s.get('type')}): {s.get('url')}" for s in candidate_data.get("sources", [])
+        ]) or "Public query indices"
 
         user_prompt = f"""
 TARGET QUERY:
@@ -50,19 +83,46 @@ School: {query_input.get('school')}
 GitHub: {query_input.get('githubUsername')}
 Description: {query_input.get('description')}
 
-CANDIDATE EVIDENCE:
-Name: {candidate_data.get('name')}
-Possible Role: {candidate_data.get('possibleRole')}
-College: {candidate_data.get('college')}
-GitHub Repositories: {candidate_data.get('github', {}).get('publicRepos')} public repos
-Top Projects: {', '.join(candidate_data.get('projects', []))}
-Skills: {', '.join(candidate_data.get('skills', []))}
-YouTube Status: {candidate_data.get('youtube', {}).get('status')}
-Professional Profile: {candidate_data.get('professionalProfile', {}).get('status')}
-Evidence Consistency: {candidate_data.get('score')}%
+CANDIDATE INFORMATION:
+Candidate ID: {candidate_data.get('candidateId')}
+Name: {cand_name}
+Role / Affiliation: {candidate_data.get('possibleRole')}
+College / Institution: {college}
+School: {candidate_data.get('school')}
 
-Generate a concise 3-4 sentence investigation summary based strictly on the above facts.
+SOURCE FOOTPRINT:
+{sources_text}
+
+GITHUB EVIDENCE:
+Username: {github.get('username')}
+Public Repositories: {repos}
+Top Projects: {', '.join(projects)}
+Languages: {', '.join(candidate_data.get('skills', []))}
+
+PROFESSIONAL / LINKEDIN:
+Status: {prof_status}
+Profile URL: {candidate_data.get('professionalProfile', {}).get('profileUrl')}
+Evidence: {json.dumps(candidate_data.get('professionalProfile', {}).get('evidence', []))}
+
+YOUTUBE EVIDENCE:
+Status: {yt_status}
+Channel: {candidate_data.get('youtube', {}).get('channel')}
+
+PHOTO SIMILARITY:
+Photo Similarity: {f"{photo_sim}%" if photo_sim is not None else "Not provided"}
+Status: {photo_status}
+
+DETECTED CONFLICTS:
+{conflicts_text}
+
+EVIDENCE CONSISTENCY SCORE:
+{score}% ({match_lvl})
+MATCHED SIGNALS: {', '.join(candidate_data.get('matchedSignals', []))}
+UNCERTAIN SIGNALS: {', '.join(candidate_data.get('uncertainSignals', []))}
+
+Generate the structured analysis.
 """
+
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
@@ -70,7 +130,7 @@ Generate a concise 3-4 sentence investigation summary based strictly on the abov
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=300,
+                max_tokens=450,
                 temperature=0.2
             )
             content = resp.choices[0].message.content.strip()
