@@ -360,28 +360,28 @@ export default function App() {
               </span>
               <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white max-w-4xl mx-auto leading-tight min-h-[3.5rem] flex items-center justify-center">
                 <TextType
-                  text={[
-                    "Cryptographic Identity Attestation",
-                    "Provenance Verification Core",
-                    "Multi-Source Signal Intelligence"
-                  ]}
+                  text="Cryptographic Identity Attestation"
                   as="span"
-                  typingSpeed={60}
-                  pauseDuration={2200}
+                  typingSpeed={35}
+                  loop={false}
                   showCursor={true}
                   cursorCharacter="|"
-                  cursorClassName="text-white font-mono"
-                  className="inline-block text-white"
+                  cursorClassName="text-white font-mono ml-1 opacity-80"
+                  className="inline-block text-white font-extrabold tracking-tight"
                 />
               </h2>
-              <div className="relative w-full max-w-3xl h-24 sm:h-32 md:h-36 mx-auto overflow-hidden flex items-center justify-center">
-                <ASCIIText
-                  text="Proven Across Public Registries"
-                  asciiFontSize={6}
-                  textFontSize={90}
-                  planeBaseHeight={4.5}
-                  enableWaves={true}
-                />
+              <div className="space-y-2">
+                <div className="relative w-full max-w-4xl h-24 sm:h-28 md:h-32 mx-auto overflow-hidden flex items-center justify-center">
+                  <ASCIIText
+                    text="Proven Across Public Registries"
+                    asciiFontSize={5}
+                    textFontSize={160}
+                    enableWaves={true}
+                  />
+                </div>
+                <div className="text-xs sm:text-sm font-mono tracking-widest text-neutral-400 uppercase">
+                  Proven Across Public Registries
+                </div>
               </div>
             </div>
           }

@@ -1,5 +1,3 @@
-// Component ported and enhanced from https://codepen.io/JuanFuentes/pen/eYEeoyE
-
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
@@ -11,15 +9,13 @@ uniform float uEnableWaves;
 
 void main() {
     vUv = uv;
-    float time = uTime * 5.;
-
-    float waveFactor = uEnableWaves;
+    float time = uTime * 2.5;
+    float waveFactor = uEnableWaves * 0.08;
 
     vec3 transformed = position;
-
-    transformed.x += sin(time + position.y) * 0.5 * waveFactor;
-    transformed.y += cos(time + position.z) * 0.15 * waveFactor;
-    transformed.z += sin(time + position.x) * waveFactor;
+    transformed.x += sin(time + position.y * 0.5) * 0.3 * waveFactor;
+    transformed.y += cos(time + position.x * 0.3) * 0.15 * waveFactor;
+    transformed.z += sin(time + position.x * 0.4) * 0.6 * waveFactor;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
 }
@@ -27,20 +23,12 @@ void main() {
 
 const fragmentShader = `
 varying vec2 vUv;
-uniform float mouse;
 uniform float uTime;
 uniform sampler2D uTexture;
 
 void main() {
-    float time = uTime;
-    vec2 pos = vUv;
-    
-    float move = sin(time + mouse) * 0.01;
-    float r = texture2D(uTexture, pos + cos(time * 2. - time + pos.x) * .01).r;
-    float g = texture2D(uTexture, pos + tan(time * .5 + pos.x - time) * .01).g;
-    float b = texture2D(uTexture, pos - cos(time * 2. + time + pos.y) * .01).b;
-    float a = texture2D(uTexture, pos).a;
-    gl_FragColor = vec4(r, g, b, a);
+    vec4 tex = texture2D(uTexture, vUv);
+    gl_FragColor = tex;
 }
 `;
 
@@ -48,10 +36,10 @@ Math.map = function (n, start, stop, start2, stop2) {
   return ((n - start) / (stop - start)) * (stop2 - start2) + start2;
 };
 
-const PX_RATIO = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+const PX_RATIO = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
 
 class AsciiFilter {
-  constructor(renderer, { fontSize, fontFamily, charset, invert } = {}) {
+  constructor(renderer, { fontSize = 5, fontFamily = 'monospace', charset } = {}) {
     this.renderer = renderer;
     this.domElement = document.createElement('div');
     this.domElement.style.position = 'absolute';
@@ -59,6 +47,10 @@ class AsciiFilter {
     this.domElement.style.left = '0';
     this.domElement.style.width = '100%';
     this.domElement.style.height = '100%';
+    this.domElement.style.display = 'flex';
+    this.domElement.style.alignItems = 'center';
+    this.domElement.style.justifyContent = 'center';
+    this.domElement.style.overflow = 'hidden';
 
     this.pre = document.createElement('pre');
     this.domElement.appendChild(this.pre);
@@ -67,11 +59,10 @@ class AsciiFilter {
     this.context = this.canvas.getContext('2d');
     this.domElement.appendChild(this.canvas);
 
-    this.deg = 0;
-    this.invert = invert ?? true;
-    this.fontSize = fontSize ?? 12;
-    this.fontFamily = fontFamily ?? "'Courier New', monospace";
-    this.charset = charset ?? ' .\'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+    this.fontSize = fontSize;
+    this.fontFamily = fontFamily;
+    // High-contrast, clean charset: blank -> light punctuation -> dense block characters
+    this.charset = charset ?? ' .:-=+*#%@';
 
     this.context.webkitImageSmoothingEnabled = false;
     this.context.mozImageSmoothingEnabled = false;
@@ -94,24 +85,22 @@ class AsciiFilter {
 
   reset() {
     this.context.font = `${this.fontSize}px ${this.fontFamily}`;
-    const charWidth = this.context.measureText('A').width;
+    const charWidth = this.fontSize * 0.6;
 
-    this.cols = Math.floor(this.width / (this.fontSize * (charWidth / this.fontSize)));
+    this.cols = Math.floor(this.width / charWidth);
     this.rows = Math.floor(this.height / this.fontSize);
 
     this.canvas.width = this.cols;
     this.canvas.height = this.rows;
     this.pre.style.fontFamily = this.fontFamily;
     this.pre.style.fontSize = `${this.fontSize}px`;
+    this.pre.style.letterSpacing = '0px';
     this.pre.style.margin = '0';
     this.pre.style.padding = '0';
-    this.pre.style.lineHeight = '1em';
-    this.pre.style.position = 'absolute';
-    this.pre.style.left = '0';
-    this.pre.style.top = '0';
+    this.pre.style.lineHeight = '1.05em';
+    this.pre.style.position = 'relative';
+    this.pre.style.textAlign = 'center';
     this.pre.style.zIndex = '9';
-    this.pre.style.backgroundAttachment = 'fixed';
-    this.pre.style.mixBlendMode = 'difference';
   }
 
   render(scene, camera) {
@@ -125,7 +114,6 @@ class AsciiFilter {
     }
 
     this.asciify(this.context, w, h);
-    this.hue();
   }
 
   onMouseMove(e) {
@@ -140,34 +128,35 @@ class AsciiFilter {
     return this.mouse.y - this.center.y;
   }
 
-  hue() {
-    const deg = (Math.atan2(this.dy, this.dx) * 180) / Math.PI;
-    this.deg += (deg - this.deg) * 0.075;
-    this.domElement.style.filter = `hue-rotate(${this.deg.toFixed(1)}deg)`;
-  }
-
   asciify(ctx, w, h) {
     if (w && h) {
       const imgData = ctx.getImageData(0, 0, w, h).data;
       let str = '';
+      const chars = this.charset;
+      const charLen = chars.length - 1;
+
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-          const i = x * 4 + y * 4 * w;
-          const [r, g, b, a] = [imgData[i], imgData[i + 1], imgData[i + 2], imgData[i + 3]];
+          const i = (x + y * w) * 4;
+          const a = imgData[i + 3];
 
-          if (a === 0) {
+          // Clear transparent areas cleanly
+          if (a < 30) {
             str += ' ';
             continue;
           }
 
-          let gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
-          let idx = Math.floor((1 - gray) * (this.charset.length - 1));
-          if (this.invert) idx = this.charset.length - idx - 1;
-          str += this.charset[idx];
+          const r = imgData[i];
+          const g = imgData[i + 1];
+          const b = imgData[i + 2];
+          // Perceptual grayscale
+          const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          const idx = Math.min(charLen, Math.max(1, Math.floor(brightness * charLen)));
+          str += chars[idx];
         }
         str += '\n';
       }
-      this.pre.innerHTML = str;
+      this.pre.textContent = str;
     }
   }
 
@@ -177,23 +166,21 @@ class AsciiFilter {
 }
 
 class CanvasTxt {
-  constructor(txt, { fontSize = 200, fontFamily = 'Arial', color = '#fdf9f3' } = {}) {
+  constructor(txt, { fontSize = 160, fontFamily = '"Inter", "Segoe UI", Roboto, sans-serif', color = '#ffffff' } = {}) {
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
     this.txt = txt;
     this.fontSize = fontSize;
     this.fontFamily = fontFamily;
     this.color = color;
-
-    this.font = `600 ${this.fontSize}px ${this.fontFamily}`;
+    this.font = `800 ${this.fontSize}px ${this.fontFamily}`;
   }
 
   resize() {
     this.context.font = this.font;
     const metrics = this.context.measureText(this.txt);
-
-    const textWidth = Math.ceil(metrics.width) + 20;
-    const textHeight = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) + 20;
+    const textWidth = Math.ceil(metrics.width) + 60;
+    const textHeight = Math.ceil(this.fontSize * 1.3) + 40;
 
     this.canvas.width = textWidth;
     this.canvas.height = textHeight;
@@ -203,11 +190,9 @@ class CanvasTxt {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.fillStyle = this.color;
     this.context.font = this.font;
-
-    const metrics = this.context.measureText(this.txt);
-    const yPos = 10 + metrics.actualBoundingBoxAscent;
-
-    this.context.fillText(this.txt, 10, yPos);
+    this.context.textBaseline = 'middle';
+    this.context.textAlign = 'center';
+    this.context.fillText(this.txt, this.canvas.width / 2, this.canvas.height / 2);
   }
 
   get width() {
@@ -225,7 +210,7 @@ class CanvasTxt {
 
 class CanvAscii {
   constructor(
-    { text, asciiFontSize, textFontSize, textColor, planeBaseHeight, enableWaves },
+    { text, asciiFontSize = 5, textFontSize = 160, textColor = '#ffffff', planeBaseHeight = 12, enableWaves = true },
     containerElem,
     width,
     height
@@ -241,7 +226,7 @@ class CanvAscii {
     this.enableWaves = enableWaves;
 
     this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1, 1000);
-    this.camera.position.z = 30;
+    this.camera.position.z = 24;
 
     this.scene = new THREE.Scene();
     this.mouse = { x: this.width / 2, y: this.height / 2 };
@@ -250,14 +235,6 @@ class CanvAscii {
   }
 
   async init() {
-    try {
-      await document.fonts.load('600 200px "IBM Plex Mono"');
-      await document.fonts.load('500 12px "IBM Plex Mono"');
-    } catch (e) {
-      // Font loading failed, continue with fallback
-    }
-    await document.fonts.ready;
-
     this.setMesh();
     this.setRenderer();
   }
@@ -265,21 +242,31 @@ class CanvAscii {
   setMesh() {
     this.textCanvas = new CanvasTxt(this.textString, {
       fontSize: this.textFontSize,
-      fontFamily: 'IBM Plex Mono',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       color: this.textColor
     });
     this.textCanvas.resize();
     this.textCanvas.render();
 
     this.texture = new THREE.CanvasTexture(this.textCanvas.texture);
-    this.texture.minFilter = THREE.NearestFilter;
+    this.texture.minFilter = THREE.LinearFilter;
+    this.texture.magFilter = THREE.LinearFilter;
 
     const textAspect = this.textCanvas.width / this.textCanvas.height;
-    const baseH = this.planeBaseHeight;
-    const planeW = baseH * textAspect;
-    const planeH = baseH;
+    
+    // Fit text plane to occupy 70-80% of camera visible height
+    const visibleH = 2 * Math.tan((45 * Math.PI / 180) / 2) * this.camera.position.z;
+    const visibleW = visibleH * (this.width / this.height);
 
-    this.geometry = new THREE.PlaneGeometry(planeW, planeH, 36, 36);
+    let planeH = visibleH * 0.72;
+    let planeW = planeH * textAspect;
+
+    if (planeW > visibleW * 0.94) {
+      planeW = visibleW * 0.94;
+      planeH = planeW / textAspect;
+    }
+
+    this.geometry = new THREE.PlaneGeometry(planeW, planeH, 32, 32);
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -297,14 +284,13 @@ class CanvAscii {
   }
 
   setRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(1);
     this.renderer.setClearColor(0x000000, 0);
 
     this.filter = new AsciiFilter(this.renderer, {
-      fontFamily: 'IBM Plex Mono',
-      fontSize: this.asciiFontSize,
-      invert: true
+      fontFamily: '"SF Mono", "Consolas", "Courier New", monospace',
+      fontSize: this.asciiFontSize
     });
 
     this.container.appendChild(this.filter.domElement);
@@ -322,7 +308,6 @@ class CanvAscii {
     this.camera.updateProjectionMatrix();
 
     this.filter.setSize(w, h);
-
     this.center = { x: w / 2, y: h / 2 };
   }
 
@@ -349,21 +334,17 @@ class CanvAscii {
   render() {
     const time = new Date().getTime() * 0.001;
 
-    this.textCanvas.render();
-    this.texture.needsUpdate = true;
-
     this.mesh.material.uniforms.uTime.value = Math.sin(time);
-
     this.updateRotation();
     this.filter.render(this.scene, this.camera);
   }
 
   updateRotation() {
-    const x = Math.map(this.mouse.y, 0, this.height, 0.5, -0.5);
-    const y = Math.map(this.mouse.x, 0, this.width, -0.5, 0.5);
+    const x = Math.map(this.mouse.y, 0, this.height, 0.3, -0.3);
+    const y = Math.map(this.mouse.x, 0, this.width, -0.3, 0.3);
 
-    this.mesh.rotation.x += (x - this.mesh.rotation.x) * 0.05;
-    this.mesh.rotation.y += (y - this.mesh.rotation.y) * 0.05;
+    this.mesh.rotation.x += (x - this.mesh.rotation.x) * 0.04;
+    this.mesh.rotation.y += (y - this.mesh.rotation.y) * 0.04;
   }
 
   clear() {
@@ -403,15 +384,14 @@ class CanvAscii {
 }
 
 export default function ASCIIText({
-  text = 'David!',
-  asciiFontSize = 8,
-  textFontSize = 200,
-  textColor = '#fdf9f3',
-  planeBaseHeight = 8,
+  text = 'Proven Across Public Registries',
+  asciiFontSize = 5,
+  textFontSize = 160,
+  textColor = '#ffffff',
+  planeBaseHeight = 12,
   enableWaves = true,
   className = '',
-  style = {},
-  gradient = 'radial-gradient(circle, #ffffff 0%, #d4d4d4 50%, #888888 100%)'
+  style = {}
 }) {
   const containerRef = useRef(null);
   const asciiRef = useRef(null);
@@ -493,50 +473,41 @@ export default function ASCIIText({
       ref={containerRef}
       className={`ascii-text-container ${className}`}
       style={{
-        position: 'absolute',
+        position: 'relative',
         width: '100%',
         height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         ...style
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap');
-
         .ascii-text-container canvas {
           position: absolute;
           left: 0;
           top: 0;
           width: 100%;
           height: 100%;
-          image-rendering: optimizeSpeed;
-          image-rendering: -moz-crisp-edges;
-          image-rendering: -o-crisp-edges;
-          image-rendering: -webkit-optimize-contrast;
-          image-rendering: optimize-contrast;
-          image-rendering: crisp-edges;
-          image-rendering: pixelated;
+          opacity: 0;
+          pointer-events: none;
         }
 
         .ascii-text-container pre {
           margin: 0;
           user-select: none;
           padding: 0;
-          line-height: 1em;
-          text-align: left;
-          position: absolute;
-          left: 0;
-          top: 0;
-          background-image: ${gradient};
-          background-attachment: fixed;
+          line-height: 1.05em;
+          text-align: center;
+          color: #ffffff;
+          background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 55%, #94a3b8 100%);
           -webkit-text-fill-color: transparent;
           -webkit-background-clip: text;
+          background-clip: text;
           z-index: 9;
-          mix-blend-mode: difference;
-        }
-
-        /* Invert colors after rendering the effect if in light mode */
-        :root[data-theme='light'] .ascii-text-container {
-          filter: invert(1);
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
         }
       `}</style>
     </div>
