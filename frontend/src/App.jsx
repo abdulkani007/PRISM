@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import DotField from './components/DotField';
 import logoImg from './assets/logo.png';
+import dashImg from './assets/dash.png';
 import SignInPageDemo from './components/ui/demo';
 import Dashboard from './components/Dashboard';
+import { ContainerScroll } from './components/ui/container-scroll-animation';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -322,12 +324,38 @@ export default function App() {
 
         {/* Scroll Indicator */}
         <button
-          onClick={() => scrollToSection('workflow')}
+          onClick={() => scrollToSection('scroll-animation-section')}
           className="flex flex-col items-center gap-2 text-xs font-mono text-neutral-400 hover:text-white transition-colors duration-200 animate-bounce"
         >
           <span>Scroll to explore</span>
           <ChevronDown className="w-4 h-4" />
         </button>
+      </section>
+
+      {/* 3.5 CONTAINER SCROLL ANIMATION (using dash.png) */}
+      <section id="scroll-animation-section" className="relative z-10 -mt-12 md:-mt-28 overflow-hidden px-4">
+        <ContainerScroll
+          titleComponent={
+            <div className="space-y-4 mb-8">
+              <span className="inline-block px-3.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/15 backdrop-blur-md">
+                Cross-Platform Telemetry
+              </span>
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white max-w-4xl mx-auto leading-tight">
+                Cryptographic Identity Attestation <br />
+                <span className="text-2xl sm:text-4xl md:text-5xl text-neutral-400 font-medium">
+                  Proven Across Public Registries
+                </span>
+              </h2>
+            </div>
+          }
+        >
+          <img
+            src={dashImg}
+            alt="PRISM Digital Identity Intelligence Dashboard"
+            className="mx-auto rounded-2xl object-cover h-full w-full object-center shadow-2xl border border-white/10"
+            draggable={false}
+          />
+        </ContainerScroll>
       </section>
 
       {/* 4. WORKFLOW SECTION */}
