@@ -120,6 +120,8 @@ class CandidateCard(BaseModel):
     photoEvidence: Optional[Dict[str, Any]] = None
     reverseImageMatches: List[Dict[str, Any]] = []
     aiAnalysis: str = ""
+    timeline: List[Dict[str, Any]] = []
+    graph: Optional[Dict[str, Any]] = None
 
 class InvestigationCreateRequest(BaseModel):
     name: Optional[str] = None
@@ -141,12 +143,14 @@ class InvestigationState(BaseModel):
     currentStep: str
     createdAt: str
     input: Dict[str, Any]
-    queries: List[str] = []
+    queries: List[Dict[str, Any]] = []
     candidates: List[CandidateCard] = []
     evidenceOverview: Dict[str, Any] = {}
     imageAnalysis: Optional[Dict[str, Any]] = None
     aiSummary: str = ""
     clarificationQuestions: List[str] = []
+    timeline: List[Dict[str, Any]] = []
+    graph: Optional[Dict[str, Any]] = None
 
 # Backwards compatibility schemas for existing resolution_service callers
 class EvidenceRecord(BaseModel):

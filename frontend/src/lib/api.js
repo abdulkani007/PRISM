@@ -33,6 +33,18 @@ export async function getInvestigationState(investigationId) {
   return await res.json();
 }
 
+export async function getInvestigationGraph(investigationId) {
+  const res = await fetch(`${API_BASE_URL}/api/v1/investigations/${investigationId}/graph`);
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+export async function getInvestigationTimeline(investigationId) {
+  const res = await fetch(`${API_BASE_URL}/api/v1/investigations/${investigationId}/timeline`);
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
 export async function getCandidateDetails(candidateId) {
   const res = await fetch(`${API_BASE_URL}/api/v1/candidates/${candidateId}`);
   if (!res.ok) throw new Error(`HTTP error ${res.status}`);

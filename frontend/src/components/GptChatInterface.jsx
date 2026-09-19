@@ -30,9 +30,12 @@ import {
   Briefcase,
   Code2,
   Award,
-  Camera
+  Camera,
+  Network,
+  Clock
 } from 'lucide-react';
 import { executeInvestigationWorkflow } from '../lib/api';
+import { RelationshipGraphView, ChronologicalTimelineView } from './InvestigationGraphAndTimeline';
 
 const GithubIcon = ({ className = "w-4 h-4" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -95,6 +98,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
   const [copiedId, setCopiedId] = useState(null);
   const [imageModalUrl, setImageModalUrl] = useState(null);
   const [selectedCandidateModal, setSelectedCandidateModal] = useState(null);
+  const [candidateModalTab, setCandidateModalTab] = useState('dossier');
   const [showParamsDrawer, setShowParamsDrawer] = useState(false);
 
   // Discrete parameter fields state
@@ -409,8 +413,46 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
               </div>
             </div>
 
-            {/* SECTIONS: EDUCATION & GITHUB */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* MODAL TABS */}
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+              <button
+                onClick={() => setCandidateModalTab('dossier')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-target ${
+                  candidateModalTab === 'dossier'
+                    ? 'bg-white text-black font-bold shadow-lg'
+                    : 'bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                Dossier & Signals
+              </button>
+              <button
+                onClick={() => setCandidateModalTab('graph')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-target flex items-center gap-1.5 ${
+                  candidateModalTab === 'graph'
+                    ? 'bg-white text-black font-bold shadow-lg'
+                    : 'bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Network className="w-3.5 h-3.5" />
+                <span>Relationship Graph</span>
+              </button>
+              <button
+                onClick={() => setCandidateModalTab('timeline')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-target flex items-center gap-1.5 ${
+                  candidateModalTab === 'timeline'
+                    ? 'bg-white text-black font-bold shadow-lg'
+                    : 'bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Chronological Timeline</span>
+              </button>
+            </div>
+
+            {candidateModalTab === 'dossier' && (
+              <div className="space-y-6">
+                {/* SECTIONS: EDUCATION & GITHUB */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               {/* EDUCATION & SCHOOL */}
               <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-2">
                 <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
@@ -639,8 +681,24 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {candidateModalTab === 'graph' && (
+          <RelationshipGraphView
+            candidate={selectedCandidateModal}
+            graphData={selectedCandidateModal.graph}
+          />
+        )}
+
+        {candidateModalTab === 'timeline' && (
+          <ChronologicalTimelineView
+            candidate={selectedCandidateModal}
+            timelineData={selectedCandidateModal.timeline}
+          />
+        )}
+      </div>
+    </div>
+  )}
 
       {/* LEFT SIDEBAR (MONOCHROME) */}
       <aside
@@ -1016,7 +1074,10 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
 
                               {/* VIEW FULL DETAILS BUTTON */}
                               <button
-                                onClick={() => setSelectedCandidateModal(cand)}
+                                onClick={() => {
+                                  setSelectedCandidateModal(cand);
+                                  setCandidateModalTab('dossier');
+                                }}
                                 className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-target"
                               >
                                 <span>VIEW FULL DETAILS</span>
