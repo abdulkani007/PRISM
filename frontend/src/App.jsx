@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DotField from './components/DotField';
+import logoImg from './assets/logo.png';
 import {
   Shield,
   Search,
@@ -8,20 +9,20 @@ import {
   AlertTriangle,
   X,
   ArrowRight,
-  Sparkles,
   GitBranch,
   FileText,
   Activity,
   Layers,
-  ChevronRight
+  ChevronDown,
+  Lock,
+  Cpu,
+  HelpCircle,
+  ArrowUp
 } from 'lucide-react';
 
 export default function App() {
   const [showDemo, setShowDemo] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const [activeCandidate, setActiveCandidate] = useState(0);
-  const [searchHandle, setSearchHandle] = useState('alex-dev-sec');
   const [isSearching, setIsSearching] = useState(false);
 
   const candidates = [
@@ -35,15 +36,15 @@ export default function App() {
       org: 'Nexus Defense / CyberShield Labs',
       education: 'Stanford Institute of Tech',
       evidence: [
-        { source: 'GitHub API', detail: 'Public profile, 42 repos, Zero-Trust Architecture contributor.' },
-        { source: 'YouTube API', detail: 'Keynote Speaker at CyberSec Summit 2024.' },
-        { source: 'GPG Keyring', detail: 'Public GPG key matches committer email domain.' },
+        { source: 'GitHub REST API', detail: '42 public repos, Zero-Trust Architecture contributor.' },
+        { source: 'YouTube Data API', detail: 'Keynote Speaker at CyberSec Summit 2024.' },
+        { source: 'Public GPG Keyring', detail: 'GPG Key matches committer corporate email domain.' },
       ],
       conflict: {
         item: 'Institutional Affiliation',
-        claimA: 'GitHub: Staff Security Engineer @ Nexus Defense',
-        claimB: 'Conference: Head of Research @ CyberShield Labs',
-        resolution: 'Requires Investigator Verification'
+        claimA: 'GitHub Bio: Staff Security Engineer @ Nexus Defense',
+        claimB: 'Conference Schedule: Head of Research @ CyberShield Labs',
+        resolution: 'Flagged for Human Investigator Verification'
       }
     },
     {
@@ -76,82 +77,88 @@ export default function App() {
     }
   ];
 
-  const handleStartInvestigation = (e) => {
-    e?.preventDefault();
+  const handleStartInvestigation = () => {
     setIsSearching(true);
     setTimeout(() => {
       setIsSearching(false);
       setShowDemo(true);
+      const demoEl = document.getElementById('demo-section');
+      if (demoEl) demoEl.scrollIntoView({ behavior: 'smooth' });
     }, 600);
   };
 
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black text-white font-sans selection:bg-white selection:text-black">
-      {/* 1. FULL-SCREEN MONOCHROME DOTFIELD BACKGROUND */}
-      <div className="absolute inset-0 z-0">
+    <div className="relative min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
+      {/* 1. FULL-PAGE FIXED MONOCHROME DOTFIELD BACKGROUND */}
+      <div className="fixed inset-0 z-0 pointer-events-auto">
         <DotField
           dotRadius={1.5}
-          dotSpacing={14}
+          dotSpacing={15}
           cursorRadius={500}
           cursorForce={0.1}
           bulgeOnly={true}
-          bulgeStrength={67}
+          bulgeStrength={65}
           glowRadius={160}
           sparkle={false}
           waveAmplitude={0}
-          gradientFrom="rgba(255, 255, 255, 0.45)"
-          gradientTo="rgba(255, 255, 255, 0.15)"
+          gradientFrom="rgba(255, 255, 255, 0.40)"
+          gradientTo="rgba(255, 255, 255, 0.12)"
           glowColor="#000000"
         />
       </div>
 
       {/* 2. FLOATING TOP NAVBAR */}
-      <header className="relative z-20 w-full pt-6 px-4 sm:px-8 pointer-events-none">
-        <div className="max-w-4xl mx-auto h-14 rounded-full bg-white/[0.04] border border-white/[0.1] backdrop-blur-xl px-5 flex items-center justify-between pointer-events-auto shadow-2xl shadow-black/80">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black shadow-md">
-              <Shield className="w-4 h-4" />
+      <header className="sticky top-0 z-40 w-full pt-5 px-4 sm:px-8 pointer-events-none">
+        <div className="max-w-4xl mx-auto h-14 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl px-5 flex items-center justify-between pointer-events-auto shadow-2xl shadow-black">
+          {/* Logo & Brand */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1 shadow-md transition-transform duration-300 hover:scale-105">
+              <img src={logoImg} alt="PRISM Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-wide text-white">PRISM</span>
+            <span className="font-bold text-sm tracking-wider text-white">PRISM</span>
           </div>
 
-          {/* Nav Items */}
-          <nav className="hidden sm:flex items-center gap-8 text-xs font-medium text-neutral-400">
+          {/* Navigation Items */}
+          <nav className="hidden sm:flex items-center gap-7 text-xs font-medium text-neutral-400">
             <button
-              onClick={() => { setActiveTab('overview'); setShowModal(true); }}
-              className="hover:text-white transition-colors"
+              onClick={() => scrollToSection('workflow')}
+              className="hover:text-white transition-colors duration-200"
             >
               Workflow
             </button>
             <button
-              onClick={() => { setActiveTab('evidence'); setShowModal(true); }}
-              className="hover:text-white transition-colors"
+              onClick={() => scrollToSection('evidence-model')}
+              className="hover:text-white transition-colors duration-200"
             >
               Evidence Model
             </button>
             <button
-              onClick={() => { setActiveTab('architecture'); setShowModal(true); }}
-              className="hover:text-white transition-colors"
+              onClick={() => scrollToSection('architecture')}
+              className="hover:text-white transition-colors duration-200"
             >
               Architecture
             </button>
           </nav>
 
-          {/* Action */}
+          {/* Action Button */}
           <button
-            onClick={() => setShowDemo(!showDemo)}
-            className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all shadow-md transform hover:scale-[1.02]"
+            onClick={() => scrollToSection('demo-section')}
+            className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95"
           >
-            {showDemo ? 'Close Demo' : 'Investigate'}
+            Investigate
           </button>
         </div>
       </header>
 
-      {/* 3. HERO CENTER CONTENT */}
-      <main className="relative z-10 w-full h-[calc(100vh-140px)] flex flex-col items-center justify-center px-4 sm:px-6 text-center">
-        {/* Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] backdrop-blur-md mb-8">
+      {/* 3. HERO SECTION */}
+      <section className="relative z-10 min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 sm:px-6 text-center pt-8 pb-16">
+        {/* Subtitle Pill */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/15 backdrop-blur-md mb-8 transition-transform duration-300 hover:scale-105">
           <span className="px-2 py-0.5 rounded-full bg-white text-black text-[10px] font-extrabold uppercase tracking-wider">
             NEW
           </span>
@@ -166,232 +173,361 @@ export default function App() {
         </h1>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3.5 mb-10">
+        <div className="flex flex-wrap items-center justify-center gap-3.5 mb-10">
           <button
             onClick={handleStartInvestigation}
-            className="px-6 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 font-semibold text-sm transition-all shadow-xl shadow-white/5 transform hover:scale-[1.02]"
+            className="px-6 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 font-semibold text-sm transition-all duration-300 shadow-xl shadow-white/5 hover:scale-105 active:scale-95 flex items-center gap-2"
           >
-            {isSearching ? 'Correlating...' : 'Get started'}
+            <span>{isSearching ? 'Correlating...' : 'Get started'}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
-            onClick={() => setShowDemo(true)}
-            className="px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white border border-white/[0.12] backdrop-blur-md font-medium text-sm transition-all"
+            onClick={() => scrollToSection('demo-section')}
+            className="px-6 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/15 backdrop-blur-md font-medium text-sm transition-all duration-300 hover:scale-105 active:scale-95"
           >
             Live dossier
           </button>
         </div>
 
-        {/* Subtext Tagline */}
-        <p className="text-xs text-neutral-500 font-mono tracking-widest uppercase">
+        {/* Tagline */}
+        <p className="text-xs text-neutral-400 font-mono tracking-widest uppercase mb-12">
           Discover • Correlate • Verify • Explain
         </p>
-      </main>
 
-      {/* 4. BOTTOM RIGHT TOGGLE (MATCHING SCREENSHOT) */}
-      <div className="absolute bottom-6 right-6 z-20 flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.1] backdrop-blur-md">
-        <span className="text-xs text-neutral-400 font-medium select-none">Demo Content</span>
+        {/* Scroll Indicator with slight motion */}
         <button
-          onClick={() => setShowDemo(!showDemo)}
-          className={`w-10 h-5 rounded-full transition-colors relative p-0.5 flex items-center ${
-            showDemo ? 'bg-white' : 'bg-neutral-800'
-          }`}
-          aria-label="Toggle Demo Content"
+          onClick={() => scrollToSection('workflow')}
+          className="flex flex-col items-center gap-2 text-xs font-mono text-neutral-400 hover:text-white transition-colors duration-200 animate-bounce"
         >
-          <div
-            className={`w-4 h-4 rounded-full transition-transform ${
-              showDemo ? 'translate-x-5 bg-black' : 'translate-x-0 bg-neutral-400'
-            }`}
-          />
+          <span>Scroll to explore</span>
+          <ChevronDown className="w-4 h-4" />
         </button>
-      </div>
+      </section>
 
-      {/* 5. BOTTOM LEFT BADGE */}
-      <div className="absolute bottom-6 left-6 z-20 hidden sm:flex items-center gap-2 text-xs font-mono text-neutral-500">
-        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-        <span>NEURAX 3.0 • Domain 3: AI in Cybersecurity</span>
-      </div>
+      {/* 4. WORKFLOW SECTION */}
+      <section id="workflow" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
+        <div className="mb-14 text-center sm:text-left">
+          <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
+            01 / Architecture Flow
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Workflow
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
+            From consented image ingestion and public discovery to multi-candidate evaluation and conflict resolution.
+          </p>
+        </div>
 
-      {/* 6. DEMO DOSSIER OVERLAY (WHEN TOGGLE IS ACTIVE) */}
-      {showDemo && (
-        <div className="fixed inset-0 z-30 bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-6 transition-all">
-          <div className="relative w-full max-w-3xl rounded-2xl bg-neutral-950 border border-white/20 p-6 sm:p-8 shadow-2xl shadow-black overflow-y-auto max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-5 border-b border-white/10 mb-6">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-white text-black font-bold">
-                    INVESTIGATION DOSSIER
-                  </span>
-                  <span className="text-xs text-neutral-400 font-mono">INV-2026-0919</span>
-                </div>
-                <h2 className="text-xl font-bold text-white mt-1">
-                  Multi-Candidate Verification Matrix
-                </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">STAGE 01</div>
+            <h3 className="font-bold text-sm text-white mb-2">Consented Input</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Ingests authorized reference portrait, user profile, and seed hints (School, College, Org).
+            </p>
+          </div>
+
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">STAGE 02</div>
+            <h3 className="font-bold text-sm text-white mb-2">Multi-Discovery</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Dispatches authenticated queries across GitHub API, YouTube Data API, and public registries.
+            </p>
+          </div>
+
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">STAGE 03</div>
+            <h3 className="font-bold text-sm text-white mb-2">Candidate Eval</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Generates Candidates 1–4, evaluates context overlap, and triggers clarifying questions if uncertain.
+            </p>
+          </div>
+
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">STAGE 04</div>
+            <h3 className="font-bold text-sm text-white mb-2">Verification Dossier</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Surfaces active institutional conflicts, builds relationship graphs, and exports immutable evidence.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. LIVE DOSSIER & MULTI-CANDIDATE SANDBOX */}
+      <section id="demo-section" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
+              Interactive Demonstration
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Multi-Candidate Dossier
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-400 mt-2">
+              Select competing identity hypotheses to inspect evidence weights and conflict detection:
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 font-mono text-xs text-neutral-300">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            Case: Alex Kumar
+          </div>
+        </div>
+
+        {/* Candidate Tabs */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          {candidates.map((c, idx) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveCandidate(idx)}
+              className={`p-4 rounded-xl border text-left transition-all duration-300 ${
+                activeCandidate === idx
+                  ? 'bg-white text-black border-white shadow-xl scale-[1.02]'
+                  : 'glass-panel text-neutral-300 hover:border-white/25'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-mono mb-1">
+                <span>{c.id}</span>
+                <span className="font-bold">{c.confidence}</span>
               </div>
-              <button
-                onClick={() => setShowDemo(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              <div className="font-bold text-sm truncate">{c.name}</div>
+              <div className="text-xs opacity-75 font-mono truncate">@{c.handle}</div>
+            </button>
+          ))}
+        </div>
 
-            {/* Candidate Selector */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6">
-              {candidates.map((c, idx) => (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCandidate(idx)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    activeCandidate === idx
-                      ? 'bg-white text-black border-white'
-                      : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[11px] font-mono mb-1">
-                    <span>{c.id}</span>
-                    <span className="font-bold">{c.confidence}</span>
+        {/* Active Candidate Detail Card */}
+        {(() => {
+          const current = candidates[activeCandidate];
+          return (
+            <div className="glass-panel-glow p-6 sm:p-8 rounded-2xl space-y-6 transition-all duration-300">
+              {/* Snapshot Row */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
+                <div>
+                  <h3 className="text-xl font-bold text-white">{current.name}</h3>
+                  <p className="text-xs font-mono text-neutral-400">@{current.handle}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white font-medium">
+                    {current.status}
+                  </span>
+                  <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-white text-black">
+                    Match: {current.confidence}
+                  </span>
+                </div>
+              </div>
+
+              {/* Education & Org */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono text-neutral-300 pb-2">
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/10">
+                  <span className="text-neutral-500 block mb-1">EDUCATION RECORD</span>
+                  <span className="text-white font-medium">{current.education}</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/10">
+                  <span className="text-neutral-500 block mb-1">PRIMARY AFFILIATION</span>
+                  <span className="text-white font-medium">{current.org}</span>
+                </div>
+              </div>
+
+              {/* Conflict Alert Callout */}
+              {current.conflict && (
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/25 text-left">
+                  <div className="flex items-center gap-2 text-white font-bold text-xs mb-2">
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                    <span>CONFLICT DETECTED: {current.conflict.item}</span>
                   </div>
-                  <div className="font-bold text-sm truncate">{c.name}</div>
-                  <div className="text-[11px] opacity-70 truncate font-mono">@{c.handle}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* Active Candidate Details */}
-            {(() => {
-              const current = candidates[activeCandidate];
-              return (
-                <div className="space-y-5">
-                  {/* Candidate Overview Card */}
-                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                      <div>
-                        <h3 className="font-bold text-base text-white">{current.name}</h3>
-                        <p className="text-xs font-mono text-neutral-400">@{current.handle}</p>
-                      </div>
-                      <span className="text-xs font-mono px-2.5 py-1 rounded bg-white/[0.08] border border-white/15 text-white">
-                        {current.status}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t border-white/10 text-neutral-300">
-                      <div>
-                        <span className="text-neutral-500 block">Education</span>
-                        {current.education}
-                      </div>
-                      <div>
-                        <span className="text-neutral-500 block">Primary Org</span>
-                        {current.org}
-                      </div>
-                    </div>
+                  <div className="space-y-1.5 text-xs font-mono bg-black/60 p-3 rounded-lg border border-white/10 text-neutral-300">
+                    <div>• {current.conflict.claimA}</div>
+                    <div>• {current.conflict.claimB}</div>
                   </div>
-
-                  {/* Conflict Alert If Applicable */}
-                  {current.conflict && (
-                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/30 text-left">
-                      <div className="flex items-center gap-2 text-white font-bold text-xs mb-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        <span>CONFLICT DETECTED: {current.conflict.item}</span>
-                      </div>
-                      <div className="space-y-1 text-xs font-mono bg-black/60 p-3 rounded-lg border border-white/10">
-                        <div className="text-neutral-300">• {current.conflict.claimA}</div>
-                        <div className="text-neutral-300">• {current.conflict.claimB}</div>
-                      </div>
-                      <div className="mt-2 text-[11px] text-neutral-400">
-                        Status: {current.conflict.resolution}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Evidence Records */}
-                  <div>
-                    <div className="text-xs font-mono text-neutral-400 uppercase tracking-wider mb-2">
-                      Authenticated Evidence Records ({current.evidence.length})
-                    </div>
-                    <div className="space-y-2">
-                      {current.evidence.map((ev, i) => (
-                        <div
-                          key={i}
-                          className="p-3 rounded-xl bg-white/[0.02] border border-white/10 flex items-start justify-between text-xs"
-                        >
-                          <div>
-                            <span className="font-mono text-white font-semibold">{ev.source}:</span>{' '}
-                            <span className="text-neutral-300">{ev.detail}</span>
-                          </div>
-                          <CheckCircle2 className="w-4 h-4 text-white shrink-0 mt-0.5 ml-2" />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-2 text-[11px] text-neutral-400">
+                    Resolution: {current.conflict.resolution}
                   </div>
                 </div>
-              );
-            })()}
+              )}
+
+              {/* Evidence Records */}
+              <div>
+                <span className="text-xs font-mono text-neutral-400 uppercase tracking-wider block mb-3">
+                  Verified Public Evidence Records ({current.evidence.length})
+                </span>
+                <div className="space-y-2">
+                  {current.evidence.map((ev, i) => (
+                    <div
+                      key={i}
+                      className="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-start justify-between text-xs transition-colors hover:border-white/20"
+                    >
+                      <div>
+                        <span className="font-mono text-white font-semibold">{ev.source}:</span>{' '}
+                        <span className="text-neutral-300">{ev.detail}</span>
+                      </div>
+                      <CheckCircle2 className="w-4 h-4 text-white shrink-0 mt-0.5 ml-3" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </section>
+
+      {/* 6. EVIDENCE MODEL SECTION */}
+      <section id="evidence-model" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
+        <div className="mb-14 text-center sm:text-left">
+          <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
+            02 / Grounded Epistemology
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Evidence Model
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
+            Claims are unverified hypotheses. Only multi-source authenticated endpoints elevate assertions to confirmed status.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Example 1 */}
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-mono uppercase tracking-wider font-bold text-white">
+                Multi-Source Corroboration
+              </span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-white text-black font-bold">
+                VERIFIED
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-white mb-3">
+              Finding: "Alex Kumar is lead committer on zero-trust-proxy"
+            </p>
+            <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                <span>GitHub API: Repository created and maintained by @alex-dev-sec.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                <span>YouTube API: Presentation on zero-trust-proxy given at CyberSec 2024.</span>
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-neutral-400">
+              Status: Validated by 2 independent public endpoints. High confidence score assigned.
+            </div>
+          </div>
+
+          {/* Example 2 */}
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-mono uppercase tracking-wider font-bold text-neutral-300">
+                Institutional Discrepancy
+              </span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded border border-white/40 text-white font-bold">
+                CONFLICT
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-white mb-3">
+              Finding: "Current Primary Corporate Employer"
+            </p>
+            <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                <span>Source A (GitHub Bio): "Staff Security Engineer @ Nexus Defense"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
+                <span>Source B (Conference Bio): "Head of Research @ CyberShield Labs"</span>
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-neutral-400">
+              Status: Mutually exclusive institutional affiliations. Confidence downgraded until analyst confirms.
+            </div>
           </div>
         </div>
-      )}
+      </section>
 
-      {/* 7. QUICK MODAL FOR WORKFLOW / EVIDENCE / ARCHITECTURE */}
-      {showModal && (
-        <div className="fixed inset-0 z-30 bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4">
-          <div className="relative w-full max-w-xl rounded-2xl bg-neutral-950 border border-white/20 p-6 sm:p-8 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
-              <h3 className="font-bold text-base text-white uppercase tracking-wider font-mono">
-                {activeTab === 'overview' && 'Core Investigation Workflow'}
-                {activeTab === 'evidence' && 'Evidence & Provenance Model'}
-                {activeTab === 'architecture' && 'System Architecture'}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* 7. ARCHITECTURE & BOUNDARIES SECTION */}
+      <section id="architecture" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
+        <div className="mb-14 text-center sm:text-left">
+          <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
+            03 / System Design
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Architecture
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
+            Modular Python FastAPI orchestration, Groq LPU sub-second inference, and strict zero-trust boundaries.
+          </p>
+        </div>
 
-            <div className="text-xs text-neutral-300 leading-relaxed space-y-4">
-              {activeTab === 'overview' && (
-                <>
-                  <p>
-                    PRISM ingests an authorized reference portrait and seed context, then initiates authenticated discovery queries across public endpoints (GitHub, YouTube, conferences).
-                  </p>
-                  <div className="p-3 bg-black rounded-lg border border-white/10 font-mono text-[11px] space-y-1">
-                    <div>1. Ingest Consented Portrait + Context</div>
-                    <div>2. Parallel Discovery across Public APIs</div>
-                    <div>3. Generate Multiple Identity Hypotheses</div>
-                    <div>4. Triangulate Education, Repos & Talks</div>
-                    <div>5. Surface Institutional Conflicts & Evidence</div>
-                  </div>
-                </>
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">INTERFACE</div>
+            <h3 className="font-bold text-sm text-white mb-2">React 18 + Vite</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Ultra-lightweight monochrome analyst console with interactive React Bits DotField canvas.
+            </p>
+          </div>
 
-              {activeTab === 'evidence' && (
-                <>
-                  <p>
-                    PRISM treats every finding as an evidence assertion with an immutable cryptographic URI. It explicitly separates user-provided claims from independently verified public proof.
-                  </p>
-                  <div className="p-3 bg-black rounded-lg border border-white/10 font-mono text-[11px] space-y-2">
-                    <div className="text-white">✓ CORROBORATED: Validated by ≥2 independent sources</div>
-                    <div className="text-neutral-400">⚠ CONFLICT: Contradicting claims flagged for manual review</div>
-                    <div className="text-neutral-500">✕ COLLISION: Common-name mismatch eliminated</div>
-                  </div>
-                </>
-              )}
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">ORCHESTRATION</div>
+            <h3 className="font-bold text-sm text-white mb-2">FastAPI Gateway</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Async REST pipeline coordinating GitHub REST API, YouTube Data API, and Pydantic schemas.
+            </p>
+          </div>
 
-              {activeTab === 'architecture' && (
-                <>
-                  <p>
-                    Built with a clean separation of concerns: React 18 + Vite interface, FastAPI asynchronous Python orchestration gateway, and Groq LPU sub-second semantic reasoning.
-                  </p>
-                  <div className="p-3 bg-black rounded-lg border border-white/10 font-mono text-[11px]">
-                    FastAPI Gateway ──► GitHub REST API + YouTube API ──► Groq LPU ──► Provenance Engine
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
+            <div className="font-mono text-xs text-white/50 mb-2">REASONING CORE</div>
+            <h3 className="font-bold text-sm text-white mb-2">Groq LPU (Llama-3)</h3>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Sub-second entity extraction, conflict deduction, and clarifying question formulation.
+            </p>
           </div>
         </div>
-      )}
+
+        {/* Ethical Boundaries Card */}
+        <div className="glass-panel p-6 rounded-2xl text-xs space-y-3">
+          <div className="font-mono font-bold text-white uppercase flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            <span>Strict Operational Boundaries (Zero-Trust)</span>
+          </div>
+          <p className="text-neutral-400 leading-relaxed">
+            PRISM operates strictly on organizer-consented seed imagery and authenticated, publicly indexed endpoints. The system enforces an absolute zero-tolerance policy against private account intrusion, credential theft, password spraying, and leaked or dark-web databases.
+          </p>
+        </div>
+      </section>
+
+      {/* 8. MINIMAL FOOTER */}
+      <footer className="relative z-10 py-12 border-t border-white/10 bg-black text-xs text-neutral-500">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm">
+              <img src={logoImg} alt="PRISM Logo" className="w-full h-full object-contain" />
+            </div>
+            <span className="text-white font-bold tracking-wider">PRISM</span>
+            <span>• NEURAX 3.0 (Domain 3: AI in Cybersecurity)</span>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <a
+              href="https://github.com/abdulkani007/PRISM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5"
+            >
+              <span>GitHub Repository</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors"
+              title="Back to Top"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
