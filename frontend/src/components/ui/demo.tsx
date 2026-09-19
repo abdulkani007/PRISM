@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SignInPage, Testimonial } from "@/components/ui/sign-in";
 import {
   auth,
   googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
@@ -40,6 +42,22 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if returning from a Google redirect authentication
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          if (onAuthSuccess) onAuthSuccess(result.user);
+        }
+      })
+      .catch((err) => {
+        console.error("Google Redirect Result Error:", err);
+        if (err.code !== 'auth/credential-already-in-use') {
+          setError(err.message || "Failed to complete Google authentication.");
+        }
+      });
+  }, [onAuthSuccess]);
+
   // 1. Real Google Authentication via Firebase
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -50,7 +68,15 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
       if (onAuthSuccess) onAuthSuccess(user);
     } catch (err: any) {
       console.error("Google Sign In Error:", err);
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-blocked') {
+        // Fallback directly to redirect if popups are blocked by browser/COOP
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirErr: any) {
+          setError("Popup was blocked by browser and redirect failed. Please allow popups.");
+        }
+      } else if (err.code === 'auth/popup-closed-by-user') {
         setError("Sign in popup was closed before completing.");
       } else if (err.code === 'auth/cancelled-popup-request') {
         setError("Popup request cancelled.");
