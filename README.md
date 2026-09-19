@@ -7,169 +7,233 @@
 
 > **"Discover. Correlate. Verify. Explain."**
 
-**PRISM** is an evidence-first digital identity intelligence and public footprint verification system engineered for **NEURAX HACKATHON 3.0 (Domain 3: AI in Cybersecurity)**. It automates the discovery, correlation, and verification of fragmented public information (profiles, handles, technical contributions, and career affiliations) starting from an authorized reference image and limited seed context. By operating strictly within consented, open-web boundaries, PRISM eliminates manual investigation overhead while enforcing zero-trust auditability across every finding.
+PRISM is a consent-based digital identity intelligence platform that discovers, correlates, and verifies publicly available information across multiple authorized sources.
+
+Instead of returning a single guessed identity, PRISM generates multiple candidates, compares contextual signals, correlates cross-platform evidence, detects conflicts, and presents an explainable investigation summary.
 
 ---
 
-## 🎯 Problem
+## 1. Problem
 
-Public digital presence is distributed across GitHub, YouTube, conferences, technical publications, and portfolio sites. Connecting these fragmented records manually is slow, error-prone, and susceptible to false associations caused by common names or namespace collisions. Investigators lack an automated system that distinguishes raw claims from corroborated evidence and surfaces conflicting affiliations.
+Digital identity information is fragmented across platforms. A person's education, projects, professional history, social profiles, and public activities may exist across different sources.
 
----
-
-## 💡 Our Solution
-
-PRISM replaces blind web scraping with a structured four-stage intelligence loop:
-
-* **DISCOVER**: Queries authorized, open platforms (GitHub REST API, YouTube Data API, public registries) using consented seed context.
-* **CORRELATE**: Normalizes disparate handles, names, and bio metadata into unified candidate identity clusters.
-* **VERIFY**: Cross-references claims across independent sources to identify multi-source corroboration or institutional conflicts.
-* **EXPLAIN**: Generates a provenance-tracked intelligence dossier backed by an interactive relationship graph and activity timeline.
+The challenge is not simply finding profiles — it is determining whether those profiles and pieces of information actually refer to the same person.
 
 ---
 
-## ⭐ What Makes PRISM Different?
+## 2. Our Solution
 
-* **Evidence Attached to Every Finding**: No affiliation or role is accepted without an immutable source URL, raw response excerpt, and timestamp.
-* **Cross-Platform Correlation**: Triangulates identities through mutual backlinks, repository commit signatures, and public biographical references.
-* **Source Provenance**: Maintains strict data ancestry, separating unverified user claims from independently retrieved public evidence.
-* **Conflict Detection**: Explicitly detects and alerts analysts when sources provide mutually exclusive information instead of silently overwriting records.
-* **Identity Relationship Graph**: Maps people, handles, organizations, and repositories into an interactive graph rather than a flat list of links.
-* **Explainable Confidence**: Replaces opaque AI percentages with an Explainable Evidence Confidence Score (EECS) based on verifiable corroborating signals.
+```
+CONSENTED CONTEXT
+        +
+IMAGE + DESCRIPTION
+        ↓
+     DISCOVER
+        ↓
+GENERATE CANDIDATES
+        ↓
+    CORRELATE
+        ↓
+     VERIFY
+        ↓
+     EXPLAIN
+```
+
+PRISM combines user-provided context with an investigation image and short description to discover multiple possible candidates from approved public sources.
+
+It then correlates education, organizations, projects, usernames, profiles, and other public signals to identify relationships and inconsistencies.
 
 ---
 
-## 🏗️ Architecture
+## 3. Core Workflow
+
+The following architecture models the complete investigation and correlation pipeline:
 
 ```mermaid
 flowchart TD
-    User([Analyst / Investigator]) --> Dashboard[PRISM Dashboard]
-    Dashboard --> API[Investigation API Gateway]
-    
-    subgraph Discovery ["Source Discovery Layer"]
-        API --> GH[GitHub REST API]
-        API --> YT[YouTube Data API]
-        API --> Search[Public Search & Registries]
-    end
-    
-    GH & YT & Search --> Collection[Evidence Collection & Normalization]
-    Collection --> Resolution[Entity Resolution Engine]
-    
-    subgraph Engine ["Evidence & Provenance Core"]
-        Resolution --> Correlate[Multi-Source Correlation]
-        Correlate --> Conflict[Conflict & Anomaly Detection]
-        Conflict --> Score[Explainable Confidence Scoring]
-    end
-    
-    Score --> Graph[Identity Graph + Activity Timeline]
-    Graph --> Report([Verified Intelligence Dossier])
+
+A[User Login / Profile Context]
+B[School / College / Education / Professional Context]
+
+C[Investigation Input]
+D[Target Image + Short Description]
+
+E[Multi-Source Discovery]
+F[GitHub]
+G[LinkedIn / Public Professional Sources]
+H[YouTube]
+I[Public Search / Other Authorized Sources]
+
+J[Candidate Generation]
+K[Candidate 1]
+L[Candidate 2]
+M[Candidate 3]
+N[Candidate 4]
+
+O[Context Correlation]
+P[School]
+Q[College]
+R[Education]
+S[Projects / Organizations]
+T[Other Evidence]
+
+U{Sufficient Evidence?}
+
+V[Ask Clarifying Questions]
+W[Re-evaluate Candidates]
+
+X[Cross-Platform Correlation]
+Y[Evidence & Provenance]
+Z[Conflict Detection]
+
+AA[AI Investigation Summary]
+AB[Final Explainable Report]
+
+A --> B
+B --> O
+
+C --> D
+D --> E
+
+E --> F
+E --> G
+E --> H
+E --> I
+
+F --> J
+G --> J
+H --> J
+I --> J
+
+J --> K
+J --> L
+J --> M
+J --> N
+
+K --> O
+L --> O
+M --> O
+N --> O
+
+O --> P
+O --> Q
+O --> R
+O --> S
+O --> T
+
+O --> U
+
+U -- "No / Uncertain" --> V
+V --> W
+W --> O
+
+U -- "Yes" --> X
+
+X --> Y
+Y --> Z
+Z --> AA
+AA --> AB
 ```
 
 ---
 
-## 🔄 Investigation Flow
+## 4. What Makes PRISM Different?
 
-```mermaid
-flowchart LR
-    A[Consented Input] --> B[Candidate Discovery]
-    B --> C[Public Sources]
-    C --> D[Data Extraction]
-    D --> E[Entity Resolution]
-    E --> F[Evidence Verification]
-    F --> G[Conflict Detection]
-    G --> H[Identity Graph]
-    H --> I[Final Report]
-```
+* **Multi-Candidate Generation**: Rather than jumping to a single speculative match, PRISM surfaces candidate profiles and evaluates them side by side.
+* **Contextual Signal Triangulation**: Correlates educational history, corporate affiliations, repository commit histories, and public conference talks.
+* **Interactive Disambiguation**: When public evidence is sparse or ambiguous, PRISM dynamically generates clarifying questions for the investigator before finalizing conclusions.
+* **Conflict & Anomaly Detection**: Explicitly identifies and flags contradictions (e.g., mutually exclusive locations or overlapping employment claims).
+* **Data Provenance**: Every material finding traces directly to an authenticated source URI and raw evidence hash.
+* **Explainable Confidence**: Replaces opaque AI percentages with an Explainable Evidence Confidence Score (EECS) based on verified corroborating signals.
 
 ---
 
-## 🔎 Evidence Model
+## 5. Evidence & Conflict Model
 
-PRISM treats every finding as an evidence-backed assertion with an explicit verification status:
+PRISM separates unverified claims from independently verified facts:
 
-### Example 1: Corroborated Finding
+### Case A: Corroborated Finding
 ```text
-Finding:  "Associated with ABC University as Researcher"
+Finding:  "Affiliated with ABC University as AI Researcher"
 Evidence:
-  • Source A (GitHub Profile)  ──► Affiliation: "ABC University"
-  • Source B (Conference Page) ──► Speaker: "Alex K. (ABC University)"
+  • Source 1 (GitHub Bio)      ──► "Researcher @ ABC University"
+  • Source 2 (Conference Talk) ──► Speaker: "Alex K. (ABC University)"
 Status:   CORROBORATED (Confidence: High)
 ```
 
-### Example 2: Conflict Detected
+### Case B: Conflict Detected
 ```text
-Finding:  "Current Primary Employer"
+Finding:  "Current Primary Affiliation"
 Conflict:
-  • Source A (GitHub Bio)   ──► "Staff Engineer @ Apex Defense"
-  • Source B (YouTube Talk) ──► "Head of Security @ CyberShield Labs"
-Status:   CONFLICT DETECTED ──► Requires Analyst Review (Confidence: Downgraded)
+  • Source 1 (GitHub Profile)  ──► "Staff Engineer @ Nexus Defense"
+  • Source 2 (YouTube Keynote) ──► "Head of Research @ CyberShield Labs"
+Status:   CONFLICT DETECTED ──► Requires Investigator Review
 ```
 
 ---
 
-## 🧠 AI Layer
+## 6. AI & Reasoning Layer
 
-PRISM utilizes high-speed AI inference (powered by **Groq LPU** running open-weight LLMs like Llama-3) as a **deterministic semantic reasoning layer**:
+PRISM deploys ultra-fast AI inference (**Groq LPU** running open-weight models like Llama-3) as an auditable reasoning and structuring engine:
 
-* **Entity Extraction**: Parses free-form bios and conference abstracts into normalized entities (organizations, roles, tools).
-* **Semantic Comparison**: Identifies matching projects across different handle naming conventions.
-* **Conflict Deduction**: Flags temporal and organizational discrepancies across extracted claims.
+* **Information Extraction**: Normalizes semi-structured bios, talk transcripts, and publication records into unified entity schemas.
+* **Candidate Disambiguation**: Compares technical vocabulary, project overlaps, and co-authors across candidates.
+* **Conflict Deduction**: Flags temporal overlaps and contradictory affiliations.
 
 > [!IMPORTANT]
-> **Source Evidence is Always Primary**: The LLM is never treated as a source of truth. Every output assertion must cite a verifiable source URI and public evidence hash.
+> **Source Evidence is Ground Truth**: The AI layer interprets and structures facts but never invents them. Every output assertion is explicitly anchored to verifiable public data.
 
 ---
 
-## 🛡️ Privacy & Responsible Use
+## 7. Privacy, Consent & Ethical Boundaries
 
-* **Strict Consent Boundary**: Investigations require an authorized verification scope and consented reference data.
+PRISM is designed strictly for authorized, defensive, and compliance-driven identity intelligence:
+
+* **Strict Consent Scope**: Investigations operate solely on organizer-authorized reference images and agreed evaluation contexts.
 * **Public & Authorized Sources Only**: Queries only legitimate, publicly indexed, or authenticated platform APIs.
-* **Zero Intrusion**: No access to private accounts, direct messages, or non-public data.
-* **No Credential Abuse**: Zero use of password spraying, credential stuffing, or access-control bypassing.
+* **Zero Private Intrusion**: No access to private profiles, direct messages, or non-public databases.
+* **No Credential Abuse**: Zero use of password spraying, credential harvesting, or access-control bypasses.
 * **No Leaked Datasets**: Dark-web dumps and breach databases are strictly prohibited.
-* **Claims vs. Evidence**: User-provided inputs are categorized as unverified claims until proven by independent third-party evidence.
-* **Uncertainty Surfacing**: Low-confidence associations and conflicting records are prominently highlighted for human review.
+* **Claims vs. Evidence**: Seed inputs are cataloged as claims until corroborated by independent third-party evidence.
 
 ---
 
-## 🧰 Tech Stack
+## 8. Tech Stack & Implementation Status
 
-| Component | Technology | Role / Purpose | Status |
+| Component | Technology | Role | Status |
 |---|---|---|---|
-| **Frontend** | React 18 + Vite | Analyst intelligence dashboard & UI | Checkpoint 1 Specification |
-| **Language** | TypeScript / Python 3.10+ | Type-safe contracts & intelligence processing | Checkpoint 1 Specification |
-| **Backend API** | FastAPI (Async) | REST gateway & concurrent source orchestration | Checkpoint 1 Specification |
+| **Frontend** | React 18 + Vite + TypeScript | Analyst intelligence dashboard & triage UI | Checkpoint 1 Specification |
+| **Backend** | FastAPI (Python 3.10+) | High-concurrency async orchestration gateway | Checkpoint 1 Specification |
 | **AI Inference** | Groq LPU (Llama-3) | Rapid semantic extraction & conflict deduction | Planned Integration |
-| **Source APIs** | GitHub REST / YouTube Data | Authenticated public profile & talk discovery | Planned Integration |
-| **Graph Modeling**| Cytoscape.js / NetworkX | Dynamic identity graph & centrality mapping | Planned Integration |
-| **Validation** | Pydantic v2 | Strict schema validation & input sanitization | Checkpoint 1 Specification |
+| **Source APIs** | GitHub REST / YouTube Data | Authenticated public profile & presentation discovery | Planned Integration |
+| **Graph Modeling** | NetworkX / Cytoscape.js | Identity relationship graph & centrality mapping | Planned Integration |
+| **Validation** | Pydantic v2 | Strict schema enforcement & input sanitization | Checkpoint 1 Specification |
 
 ---
 
-## 📂 Project Structure
+## 9. Project Structure
 
 ```text
 PRISM/
 ├── README.md              # Presentation-ready technical documentation
-├── .gitignore             # Security-first rules (secrets, venv, caches)
-├── .env.example           # Environment template (redacted API keys)
-├── backend/               # FastAPI backend service (Planned Checkpoint 2)
+├── .gitignore             # Security-first exclusions (secrets, caches, venv)
+├── .env.example           # Environment configuration template
+├── backend/               # FastAPI backend service (Checkpoint 2)
 │   ├── app/
-│   │   ├── main.py        # API gateway router & middleware
-│   │   ├── services/      # GitHub, YouTube & Groq API workers
-│   │   ├── models/        # Pydantic schemas (Person, Finding, Evidence)
-│   │   └── core/          # Provenance, conflict engine & security
-│   └── requirements.txt   # Python dependency manifest
-└── frontend/              # React + Vite console (Planned Checkpoint 2)
+│   │   ├── main.py        # Gateway router & middleware
+│   │   ├── services/      # GitHub, YouTube & Groq workers
+│   │   └── models/        # Pydantic schemas (Person, Finding, Evidence)
+│   └── requirements.txt   # Python dependencies
+└── frontend/              # React + Vite console (Checkpoint 2)
     ├── src/
-    │   ├── components/    # Graph viewer, timeline & evidence matrix
-    │   └── App.tsx        # Dashboard shell & query workflow
-    └── package.json       # Frontend package configuration
+    │   ├── components/    # Graph visualizer, timeline & evidence matrix
+    │   └── App.tsx        # Dashboard shell
+    └── package.json       # Frontend dependencies
 ```
 
 ---
 
-## 🚀 Quickstart & Setup
+## 10. Quickstart & Setup
 
 ### 1. Clone & Configure
 ```bash
@@ -180,13 +244,13 @@ cp .env.example .env
 
 ### 2. Configure Credentials (In `.env`)
 ```bash
-# Core API Keys (Never commit to Git)
+# Core API Keys (Keep private; never commit to Git)
 GROQ_API_KEY=gsk_your_groq_key_here
 GITHUB_TOKEN=ghp_your_github_token_here
 YOUTUBE_API_KEY=AIzaSy_your_youtube_key_here
 ```
 
-### 3. Run Backend & Frontend (Upon Checkpoint 2 Deployment)
+### 3. Run Services (Checkpoint 2 Deployment)
 ```bash
 # Backend
 cd backend && python -m venv venv && source venv/bin/activate
@@ -199,9 +263,10 @@ cd ../frontend && npm install && npm run dev
 
 ---
 
-## 👥 Team & License
+## 11. Hackathon Context & Team
 
-* **Hackathon**: NEURAX HACKATHON 3.0 — AI in Cybersecurity
+* **Hackathon**: NEURAX HACKATHON 3.0 — AI in Cybersecurity (Domain 3)
+* **Milestone**: Checkpoint 1 — Architecture, Problem Understanding & Approach
 * **Team**: [abdulkani007](https://github.com/abdulkani007) & Team
 * **License**: To Be Determined (Evaluation & Research use)
 
