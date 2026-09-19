@@ -10,6 +10,7 @@ import BlurText from './components/ui/BlurText';
 import TextType from './components/ui/TextType';
 import GlitchText from './components/ui/GlitchText';
 import FoldText from './components/ui/FoldText';
+import Shuffle from './components/ui/Shuffle';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -307,14 +308,22 @@ export default function App() {
         </div>
 
         {/* Main Headline */}
-        <div className="max-w-4xl mb-8 flex justify-center">
-          <BlurText
+        <div className="max-w-4xl mb-8 flex justify-center text-center">
+          <Shuffle
             text="Verify digital footprints that speak truth"
-            delay={90}
-            animateBy="words"
-            direction="top"
-            stepDuration={0.35}
-            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white justify-center leading-[1.08]"
+            tag="h1"
+            shuffleDirection="right"
+            duration={0.35}
+            animationMode="evenodd"
+            shuffleTimes={2}
+            ease="power3.out"
+            stagger={0.02}
+            threshold={0.05}
+            rootMargin="0px"
+            triggerOnce={false}
+            triggerOnHover={true}
+            scrambleCharset="!@#$%0123456789ABCDEF"
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08]"
           />
         </div>
 
