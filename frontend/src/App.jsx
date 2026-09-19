@@ -5,6 +5,7 @@ import dashImg from './assets/dash.png';
 import SignInPageDemo from './components/ui/demo';
 import Dashboard from './components/Dashboard';
 import { ContainerScroll } from './components/ui/container-scroll-animation';
+import TargetCursor from './components/ui/TargetCursor';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -132,40 +133,47 @@ export default function App() {
   // If user navigated to Dashboard view
   if (currentView === 'dashboard') {
     return (
-      <Dashboard
-        currentUser={currentUser}
-        onSignOut={() => {
-          handleSignOut();
-          setCurrentView('landing');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onBackToHome={() => {
-          setCurrentView('landing');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
+      <>
+        <TargetCursor spinDuration={2} hideDefaultCursor={true} parallaxOn={true} />
+        <Dashboard
+          currentUser={currentUser}
+          onSignOut={() => {
+            handleSignOut();
+            setCurrentView('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBackToHome={() => {
+            setCurrentView('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </>
     );
   }
 
   // If user navigated to Login view
   if (currentView === 'login') {
     return (
-      <SignInPageDemo
-        onBackToHome={() => {
-          setCurrentView('landing');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onAuthSuccess={(user) => {
-          setCurrentUser(user);
-          setCurrentView('dashboard');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
+      <>
+        <TargetCursor spinDuration={2} hideDefaultCursor={true} parallaxOn={true} />
+        <SignInPageDemo
+          onBackToHome={() => {
+            setCurrentView('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onAuthSuccess={(user) => {
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </>
     );
   }
 
   return (
     <div className="relative min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
+      <TargetCursor spinDuration={2} hideDefaultCursor={true} parallaxOn={true} />
       {/* 1. FULL-PAGE FIXED MONOCHROME DOTFIELD BACKGROUND */}
       <div className="fixed inset-0 z-0 pointer-events-auto">
         <DotField
