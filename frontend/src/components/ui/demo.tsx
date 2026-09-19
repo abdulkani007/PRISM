@@ -1,5 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SignInPage, Testimonial } from "@/components/ui/sign-in";
+import {
+  auth,
+  googleProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
+} from "@/lib/firebase";
 
 const sampleTestimonials: Testimonial[] = [
   {
@@ -24,30 +32,96 @@ const sampleTestimonials: Testimonial[] = [
 
 interface SignInPageDemoProps {
   onBackToHome?: () => void;
+  onAuthSuccess?: (user: any) => void;
 }
 
-export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome }) => {
-  const handleSignIn = (event: React.FormEvent<HTMLFormElement>) => {
+export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, onAuthSuccess }) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 1. Real Google Authentication via Firebase
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      console.log("Firebase Google Auth Success:", user);
+      if (onAuthSuccess) onAuthSuccess(user);
+      if (onBackToHome) onBackToHome();
+    } catch (err: any) {
+      console.error("Google Sign In Error:", err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError("Sign in popup was closed before completing.");
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError("Popup request cancelled.");
+      } else {
+        setError(err.message || "Failed to authenticate with Google.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 2. Email & Password Sign In via Firebase
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
+    setIsLoading(true);
     const formData = new FormData(event.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-    console.log("Sign In submitted:", data);
-    alert(`Signed In successfully as ${data.email || 'Investigator'}`);
-    if (onBackToHome) onBackToHome();
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Firebase Email Auth Success:", userCredential.user);
+      if (onAuthSuccess) onAuthSuccess(userCredential.user);
+      if (onBackToHome) onBackToHome();
+    } catch (err: any) {
+      console.error("Email Sign In Error:", err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        setError("Invalid email or password credentials.");
+      } else if (err.code === 'auth/wrong-password') {
+        setError("Incorrect password.");
+      } else {
+        setError(err.message || "Failed to sign in.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    console.log("Continue with Google clicked");
-    alert("Google Identity Federation Authenticated (Demo)");
-    if (onBackToHome) onBackToHome();
-  };
-  
-  const handleResetPassword = () => {
-    alert("Password reset instructions sent to security administrator.");
+  // 3. Create Account via Firebase
+  const handleCreateAccount = async () => {
+    const email = prompt("Enter email to register for PRISM:");
+    if (!email) return;
+    const password = prompt("Enter password (minimum 6 characters):");
+    if (!password) return;
+
+    setError(null);
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      alert(`Account created for ${userCredential.user.email}!`);
+      if (onAuthSuccess) onAuthSuccess(userCredential.user);
+      if (onBackToHome) onBackToHome();
+    } catch (err: any) {
+      setError(err.message || "Failed to create account.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCreateAccount = () => {
-    alert("Access request logged for NEURAX HACKATHON 3.0 administrator approval.");
+  // 4. Password Reset via Firebase
+  const handleResetPassword = async () => {
+    const email = prompt("Enter your account email to receive reset instructions:");
+    if (!email) return;
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert(`Password reset link sent to ${email}`);
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email.");
+    }
   };
 
   return (
@@ -60,6 +134,8 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome }) 
         onResetPassword={handleResetPassword}
         onCreateAccount={handleCreateAccount}
         onBackToHome={onBackToHome}
+        error={error}
+        isLoading={isLoading}
       />
     </div>
   );

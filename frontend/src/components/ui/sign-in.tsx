@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -32,6 +32,8 @@ export interface SignInPageProps {
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
   onBackToHome?: () => void;
+  error?: string | null;
+  isLoading?: boolean;
 }
 
 // --- SUB-COMPONENTS ---
@@ -65,6 +67,8 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onResetPassword,
   onCreateAccount,
   onBackToHome,
+  error = null,
+  isLoading = false,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -84,6 +88,13 @@ export const SignInPage: React.FC<SignInPageProps> = ({
           <div className="flex flex-col gap-6">
             <h1 className="animate-element animate-delay-100 text-3xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-element animate-delay-200 text-muted-foreground text-sm">{description}</p>
+
+            {error && (
+              <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{error}</span>
+              </div>
+            )}
 
             <form className="space-y-5" onSubmit={onSignIn}>
               <div className="animate-element animate-delay-300">
@@ -113,8 +124,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-xs text-neutral-400 hover:text-white transition-colors">Reset password</a>
               </div>
 
-              <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-white text-black py-4 font-semibold text-sm hover:bg-neutral-200 transition-colors shadow-xl">
-                Sign In to PRISM
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="animate-element animate-delay-600 w-full rounded-2xl bg-white text-black py-4 font-semibold text-sm hover:bg-neutral-200 transition-colors shadow-xl disabled:opacity-50"
+              >
+                {isLoading ? 'Signing In...' : 'Sign In to PRISM'}
               </button>
             </form>
 
@@ -123,13 +138,17 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               <span className="px-4 text-xs text-muted-foreground bg-background absolute">Or continue with</span>
             </div>
 
-            <button onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-3.5 hover:bg-foreground/5 text-sm transition-colors font-medium">
-                <GoogleIcon />
-                Continue with Google
+            <button
+              onClick={onGoogleSignIn}
+              disabled={isLoading}
+              className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-3.5 hover:bg-foreground/5 text-sm transition-colors font-medium hover:border-white/30 disabled:opacity-50"
+            >
+              <GoogleIcon />
+              <span>Continue with Google</span>
             </button>
 
             <p className="animate-element animate-delay-900 text-center text-xs text-muted-foreground">
-              Authorized personnel only. <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-white hover:underline transition-colors font-semibold">Request Access</a>
+              Authorized personnel only. <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-white hover:underline transition-colors font-semibold">Request Access / Sign Up</a>
             </p>
           </div>
         </div>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DotField from './components/DotField';
 import logoImg from './assets/logo.png';
 import SignInPageDemo from './components/ui/demo';
+import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
   Search,
@@ -16,13 +17,37 @@ import {
   ChevronDown,
   Lock,
   ArrowUp,
-  UserCheck,
-  LogIn
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'login'
   const [activeCandidate, setActiveCandidate] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
+  };
 
   const candidates = [
     {
@@ -76,14 +101,18 @@ export default function App() {
     }
   ];
 
-  const handleOpenLogin = () => {
-    setCurrentView('login');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleBackToLanding = () => {
-    setCurrentView('landing');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleStartInvestigation = () => {
+    if (!currentUser) {
+      setCurrentView('login');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setIsSearching(true);
+    setTimeout(() => {
+      setIsSearching(false);
+      const demoEl = document.getElementById('demo-section');
+      if (demoEl) demoEl.scrollIntoView({ behavior: 'smooth' });
+    }, 500);
   };
 
   const scrollToSection = (id) => {
@@ -101,7 +130,19 @@ export default function App() {
 
   // If user navigated to Login view
   if (currentView === 'login') {
-    return <SignInPageDemo onBackToHome={handleBackToLanding} />;
+    return (
+      <SignInPageDemo
+        onBackToHome={() => {
+          setCurrentView('landing');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          setCurrentView('landing');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
   }
 
   return (
@@ -160,15 +201,44 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Action Button - Redirects to Login */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleOpenLogin}
-              className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95 flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
+          {/* Auth State in Navbar */}
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || "User"}
+                    className="w-7 h-7 rounded-full border border-white/20 object-cover"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                <span className="text-xs font-medium text-neutral-300 hidden md:inline truncate max-w-[100px]">
+                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setCurrentView('login');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -190,13 +260,13 @@ export default function App() {
           Verify digital footprints that speak truth
         </h1>
 
-        {/* Action Buttons - Get Started redirects to Login */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3.5 mb-10">
           <button
-            onClick={handleOpenLogin}
+            onClick={handleStartInvestigation}
             className="px-6 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 font-semibold text-sm transition-all duration-300 shadow-xl shadow-white/5 hover:scale-105 active:scale-95 flex items-center gap-2"
           >
-            <span>Get started</span>
+            <span>{isSearching ? 'Correlating...' : currentUser ? 'Launch Investigation' : 'Get started'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
@@ -384,20 +454,6 @@ export default function App() {
                   ))}
                 </div>
               </div>
-
-              {/* CTA to start full investigation in login view */}
-              <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <span className="text-xs text-neutral-400 font-mono">
-                  Want to run a real-time investigation with full GPG, YouTube, and GitHub signals?
-                </span>
-                <button
-                  onClick={handleOpenLogin}
-                  className="px-5 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-colors flex items-center gap-2 shrink-0"
-                >
-                  <span>Launch Custom Case</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
           );
         })()}
@@ -429,7 +485,7 @@ export default function App() {
               </span>
             </div>
             <p className="text-sm font-semibold text-white mb-3">
-              Finding: "Alex Kumar is lead committer on zero-trust-proxy"
+              Finding: "Subject is lead contributor on zero-trust-proxy"
             </p>
             <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
               <div className="flex items-start gap-2">
@@ -540,12 +596,24 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <button
-              onClick={handleOpenLogin}
-              className="text-neutral-400 hover:text-white transition-colors"
-            >
-              Sign In
-            </button>
+            {!currentUser ? (
+              <button
+                onClick={() => {
+                  setCurrentView('login');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                Sign In
+              </button>
+            ) : (
+              <button
+                onClick={handleSignOut}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                Sign Out
+              </button>
+            )}
             <a
               href="https://github.com/abdulkani007/PRISM"
               target="_blank"
