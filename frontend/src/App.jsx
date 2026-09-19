@@ -9,6 +9,7 @@ import TargetCursor from './components/ui/TargetCursor';
 import BlurText from './components/ui/BlurText';
 import TextType from './components/ui/TextType';
 import GlitchText from './components/ui/GlitchText';
+import FoldText from './components/ui/FoldText';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -399,7 +400,17 @@ export default function App() {
             01 / Investigation Pipeline
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Workflow
+            <FoldText
+              text="Workflow"
+              trigger="scroll"
+              hinge="top"
+              duration={0.6}
+              stagger={0.035}
+              ease="power3.out"
+              fontSize="inherit"
+              fontWeight={800}
+              color="#ffffff"
+            />
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
             From consented image ingestion and public discovery to multi-candidate evaluation and conflict resolution.
@@ -449,7 +460,17 @@ export default function App() {
               Interactive Platform Demonstration
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Multi-Candidate Dossier
+              <FoldText
+                text="Multi-Candidate Dossier"
+                trigger="scroll"
+                hinge="top"
+                duration={0.6}
+                stagger={0.03}
+                ease="power3.out"
+                fontSize="inherit"
+                fontWeight={800}
+                color="#ffffff"
+              />
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400 mt-2">
               Select competing identity hypotheses to inspect evidence weights and conflict detection:
@@ -565,7 +586,17 @@ export default function App() {
             02 / Grounded Epistemology
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Evidence Model
+            <FoldText
+              text="Evidence Model"
+              trigger="scroll"
+              hinge="top"
+              duration={0.6}
+              stagger={0.035}
+              ease="power3.out"
+              fontSize="inherit"
+              fontWeight={800}
+              color="#ffffff"
+            />
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
             Claims are unverified hypotheses. Only multi-source authenticated endpoints elevate assertions to confirmed status.
@@ -638,7 +669,17 @@ export default function App() {
             03 / Platform Architecture
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Platform Capabilities
+            <FoldText
+              text="Platform Capabilities"
+              trigger="scroll"
+              hinge="top"
+              duration={0.6}
+              stagger={0.03}
+              ease="power3.out"
+              fontSize="inherit"
+              fontWeight={800}
+              color="#ffffff"
+            />
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
             Core functional intelligence layers designed for high-assurance entity resolution and zero private account intrusion.
