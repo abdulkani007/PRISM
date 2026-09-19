@@ -6,6 +6,9 @@ import SignInPageDemo from './components/ui/demo';
 import Dashboard from './components/Dashboard';
 import { ContainerScroll } from './components/ui/container-scroll-animation';
 import TargetCursor from './components/ui/TargetCursor';
+import BlurText from './components/ui/BlurText';
+import TextType from './components/ui/TextType';
+import ASCIIText from './components/ui/ASCIIText';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -303,9 +306,16 @@ export default function App() {
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white max-w-4xl leading-[1.08] mb-8">
-          Verify digital footprints that speak truth
-        </h1>
+        <div className="max-w-4xl mb-8 flex justify-center">
+          <BlurText
+            text="Verify digital footprints that speak truth"
+            delay={90}
+            animateBy="words"
+            direction="top"
+            stepDuration={0.35}
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white justify-center leading-[1.08]"
+          />
+        </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3.5 mb-10">
@@ -348,12 +358,31 @@ export default function App() {
               <span className="inline-block px-3.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/15 backdrop-blur-md">
                 Cross-Platform Telemetry
               </span>
-              <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white max-w-4xl mx-auto leading-tight">
-                Cryptographic Identity Attestation <br />
-                <span className="text-2xl sm:text-4xl md:text-5xl text-neutral-400 font-medium">
-                  Proven Across Public Registries
-                </span>
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white max-w-4xl mx-auto leading-tight min-h-[3.5rem] flex items-center justify-center">
+                <TextType
+                  text={[
+                    "Cryptographic Identity Attestation",
+                    "Provenance Verification Core",
+                    "Multi-Source Signal Intelligence"
+                  ]}
+                  as="span"
+                  typingSpeed={60}
+                  pauseDuration={2200}
+                  showCursor={true}
+                  cursorCharacter="|"
+                  cursorClassName="text-white font-mono"
+                  className="inline-block text-white"
+                />
               </h2>
+              <div className="relative w-full max-w-3xl h-24 sm:h-32 md:h-36 mx-auto overflow-hidden flex items-center justify-center">
+                <ASCIIText
+                  text="Proven Across Public Registries"
+                  asciiFontSize={6}
+                  textFontSize={90}
+                  planeBaseHeight={4.5}
+                  enableWaves={true}
+                />
+              </div>
             </div>
           }
         >
