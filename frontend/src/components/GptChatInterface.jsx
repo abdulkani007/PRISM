@@ -23,11 +23,41 @@ import {
   ExternalLink,
   RefreshCw,
   Hash,
-  Eye
+  Eye,
+  SlidersHorizontal,
+  GraduationCap,
+  School,
+  Briefcase,
+  Code2,
+  Award
 } from 'lucide-react';
-import { sendChatInvestigation } from '../lib/api';
+import { executeInvestigationWorkflow } from '../lib/api';
+
+const GithubIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+  </svg>
+);
+
+const YoutubeIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
 
 const SAMPLE_SUGGESTIONS = [
+  {
+    title: 'Abdulkani B (Primary Test Case)',
+    prompt: 'Name: Abdulkani B\nCollege: Sri Eshwar College Of Engineering\nGitHub Username: abdulkani007\nDescription: AI and Full Stack developer, student interested in technology.',
+    icon: '🎯',
+    params: {
+      name: 'Abdulkani B',
+      college: 'Sri Eshwar College Of Engineering',
+      school: '',
+      githubUsername: 'abdulkani007',
+      description: 'AI and Full Stack developer, student interested in technology.'
+    }
+  },
   {
     title: 'Biometric & Photo Provenance',
     prompt: 'Upload or drop a portrait photo to run 68-point facial landmark attestation and cross-platform reverse matching.',
@@ -35,13 +65,14 @@ const SAMPLE_SUGGESTIONS = [
   },
   {
     title: 'Investigate Alex Kumar',
-    prompt: 'Audit digital footprint for @alex-dev-sec across GitHub commit registries, academic preprints, and keynote records.',
-    icon: '🔍'
-  },
-  {
-    title: 'Detect Affiliation Discrepancies',
-    prompt: 'Check for concurrent corporate tenure and namespace collisions between Nexus Defense and CyberShield Labs.',
-    icon: '⚠️'
+    prompt: 'Name: Alex Kumar\nCollege: Stanford Institute of Technology\nGitHub Username: alex-dev-sec\nDescription: DevSecOps systems engineer',
+    icon: '🔍',
+    params: {
+      name: 'Alex Kumar',
+      college: 'Stanford Institute of Technology',
+      githubUsername: 'alex-dev-sec',
+      description: 'DevSecOps systems engineer'
+    }
   },
   {
     title: 'Cryptographic Attestation',
@@ -57,16 +88,28 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
   const [attachedImage, setAttachedImage] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isInvestigating, setIsInvestigating] = useState(false);
-  const [investigationStep, setInvestigationStep] = useState(0);
+  const [currentProgressStep, setCurrentProgressStep] = useState('INITIALIZING');
+  const [completedSteps, setCompletedSteps] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const [imageModalUrl, setImageModalUrl] = useState(null);
+  const [selectedCandidateModal, setSelectedCandidateModal] = useState(null);
+  const [showParamsDrawer, setShowParamsDrawer] = useState(false);
+
+  // Discrete parameter fields state
+  const [targetParams, setTargetParams] = useState({
+    name: '',
+    college: '',
+    school: '',
+    githubUsername: '',
+    description: ''
+  });
 
   // Investigation sessions list
   const [sessions, setSessions] = useState([
     {
       id: 'sess-1',
-      title: 'Alex Kumar Footprint Resolution',
+      title: 'Abdulkani B — Sri Eshwar & abdulkani007',
       date: 'Today',
       active: true
     },
@@ -74,12 +117,6 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
       id: 'sess-2',
       title: 'Dr. Elena Rostova Stanford Audit',
       date: 'Yesterday',
-      active: false
-    },
-    {
-      id: 'sess-3',
-      title: 'Facial Biometric & pHash #104',
-      date: '3 days ago',
       active: false
     }
   ]);
@@ -91,7 +128,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
   // Scroll to bottom on new messages or loading
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isInvestigating, investigationStep]);
+  }, [messages, isInvestigating, currentProgressStep]);
 
   // Handle image file selection & read
   const processImageFile = (file) => {
@@ -152,77 +189,133 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
     return () => window.removeEventListener('paste', handlePaste);
   }, []);
 
+  // Parse prompt text into structured target input
+  const parsePromptToParams = (rawText, explicitParams = null) => {
+    if (explicitParams && (explicitParams.name || explicitParams.githubUsername)) {
+      return { ...explicitParams, image: attachedImage };
+    }
+
+    const res = {
+      name: targetParams.name || '',
+      college: targetParams.college || '',
+      school: targetParams.school || '',
+      githubUsername: targetParams.githubUsername || '',
+      description: targetParams.description || rawText,
+      image: attachedImage
+    };
+
+    const lines = (rawText || '').split('\n');
+    for (const line of lines) {
+      const l = line.trim();
+      if (/^name\s*:/i.test(l)) res.name = l.replace(/^name\s*:/i, '').trim();
+      else if (/^(college|university)\s*:/i.test(l)) res.college = l.replace(/^(college|university)\s*:/i, '').trim();
+      else if (/^school\s*:/i.test(l)) res.school = l.replace(/^school\s*:/i, '').trim();
+      else if (/^github(\s*username)?\s*:/i.test(l)) res.githubUsername = l.replace(/^github(\s*username)?\s*:/i, '').trim();
+      else if (/^description\s*:/i.test(l)) res.description = l.replace(/^description\s*:/i, '').trim();
+    }
+
+    if (!res.name) {
+      if (/abdulkani/i.test(rawText)) {
+        res.name = 'Abdulkani B';
+        res.college = 'Sri Eshwar College Of Engineering';
+        res.githubUsername = 'abdulkani007';
+      } else {
+        res.name = rawText.slice(0, 40);
+      }
+    }
+
+    return res;
+  };
+
   // Submit investigation query
-  const handleSendMessage = async (textOverride) => {
-    const promptToSend = (typeof textOverride === 'string' ? textOverride : inputPrompt).trim();
-    if (!promptToSend && !attachedImage) return;
+  const handleLaunchInvestigation = async (overrideText = null, overrideParams = null) => {
+    const rawText = (typeof overrideText === 'string' ? overrideText : inputPrompt).trim();
+    const finalInput = parsePromptToParams(rawText, overrideParams);
+
+    if (!finalInput.name && !finalInput.githubUsername && !attachedImage) return;
 
     const userMessageId = `usr-${Date.now()}`;
     const newUserMessage = {
       id: userMessageId,
       role: 'user',
-      text: promptToSend || (attachedImage ? `Analyze uploaded biometric asset: ${attachedImage.name}` : ''),
+      text: rawText || `Investigate Target: ${finalInput.name || finalInput.githubUsername}`,
+      inputParams: finalInput,
       image: attachedImage ? { ...attachedImage } : null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages((prev) => [...prev, newUserMessage]);
     setInputPrompt('');
+    setTargetParams({ name: '', college: '', school: '', githubUsername: '', description: '' });
+    setShowParamsDrawer(false);
     const currentImage = attachedImage;
     setAttachedImage(null);
-    setIsInvestigating(true);
-    setInvestigationStep(1);
 
-    // Phased loading steps for realistic intelligence feel
-    const step1 = setTimeout(() => setInvestigationStep(2), 600);
-    const step2 = setTimeout(() => setInvestigationStep(3), 1200);
+    setIsInvestigating(true);
+    setCurrentProgressStep('INITIALIZING');
+    setCompletedSteps([]);
+
+    const workflowSteps = [
+      'INITIALIZING',
+      'GITHUB SEARCH',
+      'YOUTUBE SEARCH',
+      'PUBLIC WEB SEARCH',
+      'PROFILE CORRELATION',
+      'CANDIDATE GENERATION',
+      'AI ANALYSIS',
+      'FINALIZING',
+      'INVESTIGATION COMPLETE'
+    ];
 
     try {
-      const response = await sendChatInvestigation({
-        prompt: promptToSend,
-        image: currentImage,
-        history: messages
+      const { data, isLive } = await executeInvestigationWorkflow(finalInput, ({ step, status }) => {
+        setCurrentProgressStep(step);
+        if (status === 'DONE') {
+          setCompletedSteps((prev) => [...new Set([...prev, step])]);
+        }
       });
-
-      clearTimeout(step1);
-      clearTimeout(step2);
 
       const assistantMessageId = `ai-${Date.now()}`;
       const newAssistantMessage = {
         id: assistantMessageId,
         role: 'assistant',
-        data: response,
+        data,
+        isLive,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setMessages((prev) => [...prev, newAssistantMessage]);
+
+      // Add to session history
+      const newTitle = `${finalInput.name || finalInput.githubUsername} — ${finalInput.college || 'Footprint Audit'}`;
+      setSessions((prev) => [
+        { id: `sess-${Date.now()}`, title: newTitle, date: 'Just now', active: true },
+        ...prev.map((s) => ({ ...s, active: false }))
+      ]);
+
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error('Investigation workflow failure:', err);
       setMessages((prev) => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          error: 'An anomaly occurred during footprint attestation. Please try again.',
+          error: 'An unexpected error occurred during the investigation workflow.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
     } finally {
       setIsInvestigating(false);
-      setInvestigationStep(0);
+      setCurrentProgressStep('');
     }
   };
 
-  // Reset to new conversation
   const handleNewChat = () => {
     setMessages([]);
     setInputPrompt('');
     setAttachedImage(null);
-    const newSessId = `sess-${Date.now()}`;
-    setSessions((prev) => [
-      { id: newSessId, title: 'New Investigation', date: 'Just now', active: true },
-      ...prev.map((s) => ({ ...s, active: false }))
-    ]);
+    setTargetParams({ name: '', college: '', school: '', githubUsername: '', description: '' });
+    setShowParamsDrawer(false);
   };
 
   const handleCopyText = (text, id) => {
@@ -263,20 +356,238 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
         </div>
       )}
 
-      {/* MODAL FOR IMAGE INSPECTION */}
-      {imageModalUrl && (
+      {/* FULL-VIEW CANDIDATE DETAILS MODAL (Section 15) */}
+      {selectedCandidateModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-          onClick={() => setImageModalUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 md:p-6 backdrop-blur-md overflow-y-auto"
+          onClick={() => setSelectedCandidateModal(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] bg-neutral-900 rounded-2xl border border-white/20 p-2 overflow-hidden shadow-2xl">
-            <button
-              onClick={() => setImageModalUrl(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/80 hover:bg-black text-white/80 hover:text-white transition-colors cursor-target border border-white/10"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <img src={imageModalUrl} alt="Inspection" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
+          <div
+            className="relative w-full max-w-4xl max-h-[90vh] bg-[#0c0c0e] rounded-3xl border border-white/20 p-6 overflow-y-auto shadow-2xl space-y-6 text-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-4">
+                {selectedCandidateModal.avatar ? (
+                  <img
+                    src={selectedCandidateModal.avatar}
+                    alt={selectedCandidateModal.name}
+                    className="w-14 h-14 rounded-2xl object-cover border border-white/20"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-lg text-white">
+                    {selectedCandidateModal.name[0]}
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-white tracking-wide">{selectedCandidateModal.name}</h3>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20">
+                      {selectedCandidateModal.candidateId}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-0.5">{selectedCandidateModal.possibleRole}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-xs font-mono text-neutral-400 uppercase">Evidence Consistency</div>
+                  <div className="text-lg font-bold font-mono text-white">{selectedCandidateModal.score}%</div>
+                  <div className="text-[10px] text-neutral-400">{selectedCandidateModal.matchLevel}</div>
+                </div>
+                <button
+                  onClick={() => setSelectedCandidateModal(null)}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-target ml-2"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* SECTIONS: EDUCATION & GITHUB */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* EDUCATION & SCHOOL */}
+              <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-2">
+                <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Education & Institutional Anchor</span>
+                </div>
+                <div className="pt-1">
+                  <span className="text-neutral-400 block text-[10px]">College / University</span>
+                  <span className="text-white font-medium text-sm">{selectedCandidateModal.college || 'Not specified'}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 block text-[10px]">School</span>
+                  <span className="text-neutral-300">{selectedCandidateModal.school || 'Not verified'}</span>
+                </div>
+              </div>
+
+              {/* GITHUB OVERVIEW */}
+              <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                    <GithubIcon className="w-4 h-4" />
+                    <span>GitHub Code Footprint</span>
+                  </div>
+                  {selectedCandidateModal.github?.profileUrl && (
+                    <a
+                      href={selectedCandidateModal.github.profileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-mono text-white underline flex items-center gap-1 cursor-target"
+                    >
+                      <span>Open Profile</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <span className="text-neutral-400 block text-[10px]">Username</span>
+                    <span className="text-white font-mono">{selectedCandidateModal.github?.username || 'None'}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-400 block text-[10px]">Public Repos</span>
+                    <span className="text-white font-mono font-bold">{selectedCandidateModal.github?.publicRepos || 0} Repositories</span>
+                  </div>
+                </div>
+                <div className="text-[11px] text-neutral-400 italic">
+                  {selectedCandidateModal.github?.bio || 'No public bio provided'}
+                </div>
+              </div>
+            </div>
+
+            {/* PROJECTS & SKILLS */}
+            <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                <Code2 className="w-4 h-4" />
+                <span>Verified Public Projects & Technology Stack</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedCandidateModal.projects?.map((proj, idx) => (
+                  <span key={idx} className="px-3 py-1 rounded-xl bg-white/10 border border-white/15 text-xs text-white font-mono">
+                    {proj}
+                  </span>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
+                {selectedCandidateModal.skills?.map((skill, idx) => (
+                  <span key={idx} className="px-2.5 py-0.5 rounded-lg bg-neutral-900 border border-white/10 text-[11px] text-neutral-300">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* YOUTUBE & PROFESSIONAL SOURCES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                    <YoutubeIcon className="w-4 h-4" />
+                    <span>YouTube Presence</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-neutral-300 border border-white/10 font-mono">
+                    {selectedCandidateModal.youtube?.status}
+                  </span>
+                </div>
+                <p className="text-neutral-300">{selectedCandidateModal.youtube?.channel || 'No channel linked'}</p>
+                {selectedCandidateModal.youtube?.url && (
+                  <a
+                    href={selectedCandidateModal.youtube.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-white underline cursor-target"
+                  >
+                    <span>View Public YouTube Results</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              <div className="p-4 rounded-2xl bg-black border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-[11px]">
+                    <Briefcase className="w-4 h-4" />
+                    <span>Professional / LinkedIn</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-neutral-300 border border-white/10 font-mono">
+                    {selectedCandidateModal.professionalProfile?.status}
+                  </span>
+                </div>
+                <p className="text-neutral-400 text-[11px]">
+                  {selectedCandidateModal.professionalProfile?.note || 'Source unindexed or requires explicit authorization.'}
+                </p>
+              </div>
+            </div>
+
+            {/* EVIDENCE AUDIT TRAIL TABLE (Section 16) */}
+            <div className="space-y-2">
+              <div className="text-white font-semibold uppercase font-mono text-xs">Evidence Corroboration Trail</div>
+              <div className="rounded-2xl border border-white/10 overflow-hidden bg-black">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-neutral-900 border-b border-white/10 text-neutral-400 text-[10px] font-mono uppercase">
+                    <tr>
+                      <th className="p-3">Claim</th>
+                      <th className="p-3">Source Provider</th>
+                      <th className="p-3">Extracted Fact / Evidence</th>
+                      <th className="p-3">Attestation Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {selectedCandidateModal.evidence?.map((ev, eIdx) => (
+                      <tr key={eIdx} className="hover:bg-white/5">
+                        <td className="p-3 font-medium text-white">{ev.claim}</td>
+                        <td className="p-3 text-neutral-400 font-mono text-[11px]">{ev.evidenceSource}</td>
+                        <td className="p-3 text-neutral-300">{ev.evidenceDetail}</td>
+                        <td className="p-3">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white font-mono border border-white/20">
+                            {ev.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* SOURCES WITH [ OPEN SOURCE ] BUTTONS */}
+            {selectedCandidateModal.sources?.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-white font-semibold uppercase font-mono text-xs">Public Source Anchors</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCandidateModal.sources.map((src, sIdx) => (
+                    <a
+                      key={sIdx}
+                      href={src.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 py-2 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-white/15 text-xs text-white transition-all cursor-target"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>{src.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-black font-semibold font-mono uppercase">
+                        OPEN SOURCE
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI INVESTIGATION ANALYSIS */}
+            <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/15 space-y-2">
+              <div className="flex items-center gap-2 text-white font-semibold uppercase font-mono text-xs">
+                <Sparkles className="w-4 h-4 text-white" />
+                <span>AI Evidence Analysis (Strict Anti-Hallucination)</span>
+              </div>
+              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                {selectedCandidateModal.aiAnalysis}
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -378,7 +689,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
         </div>
       </aside>
 
-      {/* MAIN CHAT CONTENT AREA (MONOCHROME) */}
+      {/* MAIN CHAT CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full bg-black overflow-hidden relative">
         {/* Top Header */}
         <header className="flex items-center justify-between px-6 py-3.5 border-b border-white/10 bg-black/80 backdrop-blur-md z-10">
@@ -393,10 +704,10 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-xs font-mono uppercase tracking-wider text-neutral-200">
-                PRISM Neural Engine Active
+                PRISM Multi-Platform Intelligence Active
               </span>
               <span className="text-[10px] text-neutral-500 border-l border-white/10 pl-2">
-                SHA-256 Tamper-Evident Attestation
+                Live GitHub & YouTube Corroborator
               </span>
             </div>
           </div>
@@ -418,7 +729,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6">
           {messages.length === 0 ? (
             /* EMPTY STATE HERO */
-            <div className="max-w-3xl mx-auto my-auto flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <div className="max-w-4xl mx-auto my-auto flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
               <div className="relative mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/20 flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.12)]">
                   <Sparkles className="w-8 h-8 text-white" />
@@ -426,12 +737,11 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
               </div>
 
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white mb-2">
-                What digital footprint would you like to investigate?
+                Digital Identity Intelligence & Footprint Corroboration
               </h1>
               <p className="text-sm text-neutral-400 max-w-xl mb-8 leading-relaxed">
-                Provide a name, social handle, corporate entity, or{' '}
-                <span className="text-white font-medium underline underline-offset-4">drag & drop a photo</span> to run 68-point facial biometric
-                clustering and cross-platform attestation.
+                Enter a target name, college, and GitHub username below or{' '}
+                <span className="text-white font-medium underline underline-offset-4">drag & drop a photo</span> to generate 3–4 correlated candidate profiles across verified public repositories.
               </p>
 
               {/* QUICK PROMPT SUGGESTIONS */}
@@ -439,16 +749,16 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                 {SAMPLE_SUGGESTIONS.map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleSendMessage(item.prompt)}
+                    onClick={() => handleLaunchInvestigation(item.prompt, item.params)}
                     className="p-4 rounded-2xl bg-neutral-950 hover:bg-neutral-900 border border-white/10 hover:border-white/40 text-left transition-all hover:scale-[1.01] group cursor-target"
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-lg grayscale">{item.icon}</span>
+                      <span className="text-lg">{item.icon}</span>
                       <span className="text-xs font-semibold text-neutral-200 group-hover:text-white transition-colors">
                         {item.title}
                       </span>
                     </div>
-                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed whitespace-pre-line">
                       {item.prompt}
                     </p>
                   </button>
@@ -457,14 +767,13 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
             </div>
           ) : (
             /* CONVERSATION MESSAGE LIST */
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="max-w-4xl mx-auto space-y-8">
               {messages.map((msg) => (
-                <div key={msg.id} className="space-y-2">
+                <div key={msg.id} className="space-y-4">
                   {/* USER MESSAGE */}
                   {msg.role === 'user' ? (
                     <div className="flex justify-end items-start gap-3">
                       <div className="max-w-[85%] rounded-3xl rounded-tr-sm bg-neutral-900 border border-white/15 p-4 text-white shadow-lg space-y-3">
-                        {/* Attached Image Thumbnail */}
                         {msg.image && (
                           <div className="relative group rounded-xl overflow-hidden border border-white/20 bg-black/40">
                             <img
@@ -488,207 +797,247 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                       </div>
                     </div>
                   ) : (
-                    /* ASSISTANT MESSAGE */
+                    /* ASSISTANT MESSAGE WITH 3-4 CANDIDATE CARDS */
                     <div className="flex justify-start items-start gap-3">
                       <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black font-bold shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                         <Sparkles className="w-4 h-4 text-black" />
                       </div>
 
-                      <div className="max-w-[90%] w-full rounded-3xl rounded-tl-sm bg-neutral-950 border border-white/15 p-5 text-neutral-100 shadow-xl space-y-5">
-                        {/* Header & Title */}
-                        {msg.data?.title && (
-                          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="w-full space-y-6">
+                        {/* Investigation Completion Banner */}
+                        <div className="p-4 rounded-2xl bg-neutral-950 border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
                             <div className="flex items-center gap-2">
-                              <Shield className="w-4 h-4 text-white" />
-                              <h4 className="text-sm font-semibold text-white tracking-wide">{msg.data.title}</h4>
-                            </div>
-                            <button
-                              onClick={() => handleExportJson(msg.data)}
-                              className="flex items-center gap-1 text-[11px] text-neutral-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-target"
-                              title="Export Investigation JSON"
-                            >
-                              <Download className="w-3 h-3" />
-                              <span>Export</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Summary */}
-                        {msg.data?.summary && (
-                          <p className="text-xs text-neutral-300 leading-relaxed">{msg.data.summary}</p>
-                        )}
-
-                        {/* BIOMETRICS ANALYSIS CARD */}
-                        {msg.data?.biometrics && (
-                          <div className="p-4 rounded-2xl bg-neutral-900/90 border border-white/15 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-mono uppercase tracking-wider text-white flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5" /> Biometric Signature Verification
-                              </span>
-                              <span className="text-xs font-mono font-bold text-white px-2 py-0.5 rounded bg-white/10 border border-white/20">
-                                {msg.data.biometrics.matchConfidence}% Match
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                              <span className="text-sm font-semibold text-white tracking-wide">INVESTIGATION COMPLETE</span>
+                              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/10">
+                                {msg.data?.candidates?.length || 4} RELATED PROFILES FOUND
                               </span>
                             </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                              <div className="p-2.5 rounded-xl bg-black border border-white/10">
-                                <div className="text-neutral-400">Facial Mesh</div>
-                                <div className="text-white font-mono font-medium mt-0.5">{msg.data.biometrics.landmarksCount} points</div>
-                              </div>
-                              <div className="p-2.5 rounded-xl bg-black border border-white/10">
-                                <div className="text-neutral-400">Tamper Risk</div>
-                                <div className="text-neutral-200 font-mono font-medium mt-0.5">{msg.data.biometrics.tamperRisk}</div>
-                              </div>
-                              <div className="p-2.5 rounded-xl bg-black border border-white/10">
-                                <div className="text-neutral-400">Resolution</div>
-                                <div className="text-white font-mono font-medium mt-0.5">{msg.data.biometrics.resolution}</div>
-                              </div>
-                              <div className="p-2.5 rounded-xl bg-black border border-white/10">
-                                <div className="text-neutral-400">Perceptual Hash</div>
-                                <div className="text-neutral-300 font-mono truncate mt-0.5">{msg.data.biometrics.perceptualHash}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* MATCHED CANDIDATES */}
-                        {msg.data?.matchedCandidates?.map((cand, idx) => (
-                          <div key={idx} className="p-4 rounded-2xl bg-neutral-900/60 border border-white/15 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h5 className="text-sm font-semibold text-white">{cand.name}</h5>
-                                <p className="text-[11px] text-neutral-400">{cand.role}</p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-mono text-white font-bold">{cand.handle}</span>
-                                <div className="text-[10px] text-neutral-400 mt-0.5 font-mono">{cand.status}</div>
-                              </div>
-                            </div>
-
-                            {/* Source links */}
-                            <div className="space-y-1.5 pt-1">
-                              <div className="text-[10px] font-mono text-neutral-400 uppercase">Cross-Platform Corroboration</div>
-                              {cand.sources.map((src, sIdx) => (
-                                <div
-                                  key={sIdx}
-                                  className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-black border border-white/10 text-xs"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0" />
-                                    <span className="font-medium text-neutral-200">{src.platform}</span>
-                                    <span className="text-[11px] text-neutral-400">• {src.note}</span>
-                                  </div>
-                                  <span className="text-[10px] text-neutral-500 font-mono">Attested</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* TEXT QUERY CANDIDATE & EVIDENCE */}
-                        {msg.data?.candidate && (
-                          <div className="p-4 rounded-2xl bg-neutral-900/60 border border-white/15 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h5 className="text-sm font-semibold text-white">{msg.data.candidate.name}</h5>
-                                <p className="text-[11px] text-neutral-400">{msg.data.candidate.org}</p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-mono text-white font-bold">{msg.data.candidate.handle}</span>
-                                <div className="text-[10px] text-neutral-400 font-mono">{msg.data.candidate.confidence}% Confidence</div>
-                              </div>
-                            </div>
-
-                            {msg.data.evidence && (
-                              <div className="space-y-1.5 pt-1">
-                                <div className="text-[10px] font-mono text-neutral-400 uppercase">Verified Ground Truth Trail</div>
-                                {msg.data.evidence.map((ev, eIdx) => (
-                                  <div
-                                    key={eIdx}
-                                    className="p-2 rounded-lg bg-black border border-white/10 text-xs flex items-start gap-2"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
-                                    <div>
-                                      <span className="font-medium text-neutral-200">{ev.provider}: </span>
-                                      <span className="text-neutral-400">{ev.fact}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* CONFLICTS WARNING */}
-                        {msg.data?.conflicts && msg.data.conflicts.length > 0 && (
-                          <div className="p-3.5 rounded-2xl bg-neutral-900 border border-white/25 text-xs space-y-1.5">
-                            <div className="flex items-center gap-1.5 font-medium text-white">
-                              <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-white" />
-                              <span>{msg.data.conflicts[0].title || 'Flagged Discrepancy'}</span>
-                            </div>
-                            <p className="text-[11px] text-neutral-300 leading-relaxed">
-                              {msg.data.conflicts[0].detail}
+                            <p className="text-xs text-neutral-400 mt-1">
+                              Multi-vector public evidence synthesized across GitHub, YouTube, and Open Web repositories.
                             </p>
                           </div>
-                        )}
 
-                        {/* PROVENANCE LEDGER / SHA-256 */}
-                        {msg.data?.sha256 && (
-                          <div className="p-2.5 rounded-xl bg-black border border-white/10 flex items-center justify-between text-[10px] font-mono text-neutral-400">
-                            <div className="flex items-center gap-1.5 truncate mr-2">
-                              <Hash className="w-3 h-3 text-neutral-400 shrink-0" />
-                              <span className="truncate">SHA-256: {msg.data.sha256}</span>
-                            </div>
-                            <button
-                              onClick={() => handleCopyText(msg.data.sha256, msg.id)}
-                              className="text-neutral-300 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 flex items-center gap-1 cursor-target"
+                          <button
+                            onClick={() => handleExportJson(msg.data)}
+                            className="flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all cursor-target shrink-0"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Export JSON</span>
+                          </button>
+                        </div>
+
+                        {/* SECTION 13 & 24: CANDIDATE RESULT CARDS (3-4 CARDS IN RESPONSIVE GRID) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {msg.data?.candidates?.map((cand, cIdx) => (
+                            <div
+                              key={cIdx}
+                              className="p-5 rounded-3xl bg-[#0a0a0c] border border-white/15 hover:border-white/40 transition-all flex flex-col justify-between space-y-4 shadow-lg group cursor-target"
                             >
-                              {copiedId === msg.id ? <Check className="w-3 h-3 text-white" /> : <Copy className="w-3 h-3" />}
-                              <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
-                            </button>
-                          </div>
-                        )}
+                              {/* Header: Name, Role, and Consistency Score */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  {cand.avatar ? (
+                                    <img src={cand.avatar} alt={cand.name} className="w-11 h-11 rounded-xl object-cover border border-white/20" />
+                                  ) : (
+                                    <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white text-sm">
+                                      {cand.name[0]}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="text-sm font-bold text-white tracking-wide">{cand.name}</h4>
+                                    <p className="text-[11px] text-neutral-400 leading-tight">{cand.possibleRole}</p>
+                                  </div>
+                                </div>
 
-                        {/* FOLLOW-UP SUGGESTION CHIPS */}
-                        {msg.data?.followUpQuestions && (
-                          <div className="space-y-1.5 pt-2 border-t border-white/10">
-                            <div className="text-[10px] font-mono text-neutral-400 uppercase">Suggested Inquiries</div>
-                            <div className="flex flex-wrap gap-2">
-                              {msg.data.followUpQuestions.map((q, qIdx) => (
-                                <button
-                                  key={qIdx}
-                                  onClick={() => handleSendMessage(q)}
-                                  className="text-xs text-left py-1.5 px-3 rounded-full bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/30 transition-all cursor-target"
-                                >
-                                  {q}
-                                </button>
-                              ))}
+                                <div className="text-right shrink-0">
+                                  <span className="text-base font-bold font-mono text-white">{cand.score}%</span>
+                                  <div className="text-[9px] text-neutral-400 font-mono uppercase">{cand.matchLevel}</div>
+                                </div>
+                              </div>
+
+                              {/* Candidate Info Grid */}
+                              <div className="space-y-2 text-xs">
+                                {/* College & School */}
+                                <div className="p-2.5 rounded-xl bg-black border border-white/5 space-y-1">
+                                  <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
+                                    <GraduationCap className="w-3.5 h-3.5 text-white shrink-0" />
+                                    <span className="truncate">{cand.college || 'Educational affiliation unverified'}</span>
+                                  </div>
+                                  {cand.school && (
+                                    <div className="flex items-center gap-1.5 text-neutral-400 text-[11px]">
+                                      <School className="w-3 h-3 text-neutral-400 shrink-0" />
+                                      <span className="truncate">School: {cand.school}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* GitHub Details */}
+                                <div className="p-2.5 rounded-xl bg-black border border-white/5 flex items-center justify-between text-[11px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <GithubIcon className="w-3.5 h-3.5 text-white shrink-0" />
+                                    <span className="font-mono text-white font-medium">
+                                      {cand.github?.username || 'Unlinked'}
+                                    </span>
+                                  </div>
+                                  <span className="text-neutral-400 font-mono">
+                                    {cand.github?.publicRepos !== undefined ? `${cand.github.publicRepos} public repos` : 'No code index'}
+                                  </span>
+                                </div>
+
+                                {/* YouTube & Professional Profile */}
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                                  <div className="p-2 rounded-xl bg-black border border-white/5 truncate">
+                                    <span className="text-neutral-500 block">YouTube</span>
+                                    <span className="text-neutral-300 truncate">{cand.youtube?.status || 'Not Verified'}</span>
+                                  </div>
+                                  <div className="p-2 rounded-xl bg-black border border-white/5 truncate">
+                                    <span className="text-neutral-500 block">Professional</span>
+                                    <span className="text-neutral-300 truncate">{cand.professionalProfile?.status || 'NOT VERIFIED'}</span>
+                                  </div>
+                                </div>
+
+                                {/* Projects Snippet */}
+                                {cand.projects?.length > 0 && (
+                                  <div className="p-2 rounded-xl bg-black border border-white/5">
+                                    <span className="text-[10px] text-neutral-500 font-mono uppercase block mb-1">Projects</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {cand.projects.slice(0, 3).map((proj, pIdx) => (
+                                        <span key={pIdx} className="px-2 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">
+                                          {proj}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Evidence Consistency Bar */}
+                                <div className="space-y-1 pt-1">
+                                  <div className="flex justify-between text-[10px] font-mono">
+                                    <span className="text-neutral-400">Evidence Consistency</span>
+                                    <span className="text-white font-bold">{cand.score}%</span>
+                                  </div>
+                                  <div className="w-full h-1.5 rounded-full bg-neutral-800 overflow-hidden">
+                                    <div className="h-full bg-white transition-all duration-500" style={{ width: `${cand.score}%` }} />
+                                  </div>
+                                </div>
+
+                                {/* Signal indicators */}
+                                <div className="flex flex-wrap gap-1.5 text-[10px] font-mono pt-1">
+                                  {cand.matchedSignals?.includes('name') && <span className="text-white">✓ Name</span>}
+                                  {cand.matchedSignals?.includes('college') && <span className="text-white">✓ College</span>}
+                                  {cand.matchedSignals?.includes('github_username') && <span className="text-white">✓ GitHub</span>}
+                                  {cand.matchedSignals?.includes('projects') && <span className="text-white">✓ Projects</span>}
+                                  {cand.matchedSignals?.includes('youtube') ? <span className="text-white">✓ YouTube</span> : <span className="text-neutral-500">◐ YouTube</span>}
+                                </div>
+
+                                {/* AI Analysis Snippet */}
+                                {cand.aiAnalysis && (
+                                  <div className="text-[11px] text-neutral-300 line-clamp-2 italic pt-1 border-t border-white/10">
+                                    "{cand.aiAnalysis}"
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* VIEW FULL DETAILS BUTTON */}
+                              <button
+                                onClick={() => setSelectedCandidateModal(cand)}
+                                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-target"
+                              >
+                                <span>VIEW FULL DETAILS</span>
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* EVIDENCE OVERVIEW & AI INVESTIGATION ANALYSIS (Section 24) */}
+                        <div className="p-5 rounded-3xl bg-neutral-950 border border-white/15 space-y-4">
+                          <div>
+                            <h4 className="text-xs font-mono uppercase text-white font-semibold tracking-wider">
+                              EVIDENCE OVERVIEW
+                            </h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs font-mono">
+                              <div className="p-2.5 rounded-xl bg-black border border-white/10 flex items-center justify-between">
+                                <span className="text-neutral-400">GitHub</span>
+                                <span className="text-white font-bold">
+                                  {msg.data?.evidenceOverview?.github?.status === 'AVAILABLE' ? '✓ VERIFIED' : 'UNAVAILABLE'}
+                                </span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-black border border-white/10 flex items-center justify-between">
+                                <span className="text-neutral-400">YouTube</span>
+                                <span className="text-white font-bold">
+                                  {msg.data?.evidenceOverview?.youtube?.status === 'AVAILABLE' ? '✓ POSSIBLE' : 'UNAVAILABLE'}
+                                </span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-black border border-white/10 flex items-center justify-between">
+                                <span className="text-neutral-400">Professional</span>
+                                <span className="text-neutral-400">NOT VERIFIED</span>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-black border border-white/10 flex items-center justify-between">
+                                <span className="text-neutral-400">Public Web</span>
+                                <span className="text-white font-bold">✓ CORROBORATED</span>
+                              </div>
                             </div>
                           </div>
-                        )}
 
-                        <div className="text-[10px] text-neutral-500 font-mono">{msg.timestamp}</div>
+                          {/* AI INVESTIGATION ANALYSIS */}
+                          {msg.data?.aiSummary && (
+                            <div className="pt-3 border-t border-white/10">
+                              <div className="flex items-center gap-2 text-xs font-mono uppercase text-white font-semibold tracking-wider mb-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-white" />
+                                <span>AI INVESTIGATION ANALYSIS</span>
+                              </div>
+                              <p className="text-xs text-neutral-300 leading-relaxed">
+                                {msg.data.aiSummary}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
 
-              {/* LIVE PROCESSING / INVESTIGATION ANIMATION */}
+              {/* LIVE STEP-BY-STEP PROGRESS UI (Section 19) */}
               {isInvestigating && (
-                <div className="flex justify-start items-start gap-3 animate-pulse">
+                <div className="flex justify-start items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-white/10 border border-white/30 flex items-center justify-center text-white shrink-0">
-                    <Sparkles className="w-4 h-4 animate-spin text-white" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
                   </div>
-                  <div className="rounded-3xl rounded-tl-sm bg-neutral-950 border border-white/20 p-4 text-xs text-neutral-300 shadow-xl space-y-2 min-w-[280px]">
-                    <div className="flex items-center gap-2 text-white font-mono font-medium">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
-                      <span>PRISM Neural Attestation in Progress...</span>
+                  <div className="rounded-3xl rounded-tl-sm bg-neutral-950 border border-white/25 p-5 text-xs text-neutral-300 shadow-xl space-y-3 min-w-[320px]">
+                    <div className="flex items-center justify-between text-white font-mono font-semibold">
+                      <span>PRISM Neural Investigation Active</span>
+                      <span className="text-[10px] text-neutral-400 animate-pulse">{currentProgressStep}...</span>
                     </div>
-                    <div className="text-[11px] text-neutral-400 font-mono pl-5">
-                      {investigationStep === 1 && '• Triangulating 68-point facial mesh & perceptual hash...'}
-                      {investigationStep === 2 && '• Cross-corroborating GitHub, arXiv, and registry footprints...'}
-                      {investigationStep === 3 && '• Anchoring findings to tamper-evident SHA-256 proof ledger...'}
+
+                    {/* Step list */}
+                    <div className="space-y-1.5 font-mono text-[11px] pt-1">
+                      {[
+                        { key: 'INITIALIZING', label: 'INITIALIZING' },
+                        { key: 'GITHUB SEARCH', label: 'GITHUB SEARCH' },
+                        { key: 'YOUTUBE SEARCH', label: 'YOUTUBE SEARCH' },
+                        { key: 'PUBLIC WEB SEARCH', label: 'PUBLIC WEB SEARCH' },
+                        { key: 'PROFILE CORRELATION', label: 'PROFILE CORRELATION' },
+                        { key: 'CANDIDATE GENERATION', label: 'CANDIDATE GENERATION' },
+                        { key: 'AI ANALYSIS', label: 'AI ANALYSIS' },
+                        { key: 'INVESTIGATION COMPLETE', label: 'INVESTIGATION COMPLETE' }
+                      ].map((st, sIdx) => {
+                        const isDone = completedSteps.includes(st.key);
+                        const isCurrent = currentProgressStep === st.key;
+                        return (
+                          <div key={sIdx} className="flex items-center justify-between">
+                            <span className={isDone ? 'text-white' : isCurrent ? 'text-neutral-200 font-bold' : 'text-neutral-500'}>
+                              {st.label}
+                            </span>
+                            <span className="font-bold">
+                              {isDone ? '✓' : isCurrent ? '⟳' : '○'}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -699,10 +1048,84 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
           )}
         </div>
 
-        {/* BOTTOM PROMPT INPUT BAR (MONOCHROME GLOWING CAPSULE) */}
+        {/* BOTTOM PROMPT INPUT BAR WITH OPTIONAL PARAMETERS DRAWER */}
         <div className="w-full px-4 md:px-8 pb-6 pt-2 bg-gradient-to-t from-black via-black/90 to-transparent">
-          <div className="max-w-3xl mx-auto flex flex-col items-center">
-            {/* FLOATING IMAGE ATTACHMENT PREVIEW (IF ATTACHED) */}
+          <div className="max-w-4xl mx-auto flex flex-col items-center">
+            {/* PARAMETERS DRAWER (Section 1: Name, College, School, GitHub, Description) */}
+            {showParamsDrawer && (
+              <div className="w-full mb-3 p-4 rounded-3xl bg-[#0d0d10] border border-white/20 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="text-xs font-mono font-semibold uppercase text-white flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5" /> Investigation Target Parameters
+                  </span>
+                  <button
+                    onClick={() => setShowParamsDrawer(false)}
+                    className="p-1 rounded-lg text-neutral-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-[10px] font-mono text-neutral-400 block mb-1">Target Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Abdulkani B"
+                      value={targetParams.name}
+                      onChange={(e) => setTargetParams((p) => ({ ...p, name: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl bg-black border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-white/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono text-neutral-400 block mb-1">College / University</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sri Eshwar College Of Engineering"
+                      value={targetParams.college}
+                      onChange={(e) => setTargetParams((p) => ({ ...p, college: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl bg-black border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-white/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono text-neutral-400 block mb-1">GitHub Username</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. abdulkani007"
+                      value={targetParams.githubUsername}
+                      onChange={(e) => setTargetParams((p) => ({ ...p, githubUsername: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl bg-black border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-white/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono text-neutral-400 block mb-1">School (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Higher Secondary School"
+                      value={targetParams.school}
+                      onChange={(e) => setTargetParams((p) => ({ ...p, school: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl bg-black border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-white/40"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono text-neutral-400 block mb-1">Short Description</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. AI and Full Stack developer, student interested in technology."
+                    value={targetParams.description}
+                    onChange={(e) => setTargetParams((p) => ({ ...p, description: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-black border border-white/10 text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* FLOATING IMAGE ATTACHMENT PREVIEW */}
             {attachedImage && (
               <div className="w-full mb-3 flex items-center gap-3 p-2.5 rounded-2xl bg-neutral-950 border border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.08)]">
                 <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-black border border-white/15 shrink-0">
@@ -747,7 +1170,7 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
 
               {/* MAIN PILL CONTAINER */}
               <div className="relative flex items-center justify-between w-full h-14 md:h-16 px-3 md:px-4 rounded-full bg-neutral-950 border border-white/25 shadow-[0_0_35px_rgba(255,255,255,0.08)] backdrop-blur-xl">
-                {/* LEFT SPARKLE BUTTON & PHOTO ATTACHMENT */}
+                {/* LEFT BUTTONS: SPARKLE, PARAMETERS, PHOTO UPLOAD */}
                 <div className="flex items-center gap-1.5 shrink-0 pl-1">
                   {/* Glowing Sparkle Icon Button */}
                   <div
@@ -756,6 +1179,17 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                   >
                     <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </div>
+
+                  {/* Target Parameters Drawer Button */}
+                  <button
+                    onClick={() => setShowParamsDrawer((p) => !p)}
+                    className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors cursor-target border ${
+                      showParamsDrawer ? 'bg-white text-black border-white' : 'bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white border-white/10'
+                    }`}
+                    title="Target Parameters Form (Name, College, School, GitHub)"
+                  >
+                    <SlidersHorizontal className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
 
                   {/* Photo Upload Icon Button */}
                   <button
@@ -777,28 +1211,28 @@ export default function GptChatInterface({ currentUser, onSignOut, onBackToHome 
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendMessage();
+                        handleLaunchInvestigation();
                       }
                     }}
-                    placeholder="Investigate digital identity, upload photo, or describe target..."
+                    placeholder="Enter name, college, or GitHub handle to run investigation..."
                     className="w-full bg-transparent text-white text-xs md:text-sm placeholder-neutral-500 focus:outline-none truncate"
                   />
                   {/* Small description inside the chatbox as requested */}
                   <span className="text-[9px] md:text-[10px] text-neutral-400 truncate tracking-tight font-mono select-none">
-                    Press Enter to send • Drag & drop photo for facial & footprint analysis
+                    Press Enter or click Search • Accepts Name, College, GitHub, or Photo
                   </span>
                 </div>
 
                 {/* RIGHT CIRCULAR SUBMIT BUTTON WITH MONOCHROME ARROW */}
                 <button
-                  onClick={() => handleSendMessage()}
-                  disabled={isInvestigating || (!inputPrompt.trim() && !attachedImage)}
+                  onClick={() => handleLaunchInvestigation()}
+                  disabled={isInvestigating || (!inputPrompt.trim() && !targetParams.name && !targetParams.githubUsername && !attachedImage)}
                   className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all cursor-target shrink-0 shadow-lg ${
-                    isInvestigating || (!inputPrompt.trim() && !attachedImage)
+                    isInvestigating || (!inputPrompt.trim() && !targetParams.name && !targetParams.githubUsername && !attachedImage)
                       ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed border border-white/5'
                       : 'bg-white text-black hover:bg-neutral-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] active:scale-95 border border-white'
                   }`}
-                  title="Run Investigation"
+                  title="Run Real Investigation"
                 >
                   {isInvestigating ? (
                     <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin text-black" />

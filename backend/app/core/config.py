@@ -19,10 +19,11 @@ class Settings(BaseModel):
     ]
     
     # AI & Intelligence Keys
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-70b-8192")
-    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
-    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "").strip()
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "groq/compound-mini").strip()
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "").strip()
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "").strip()
+    SEARCH_API_KEY: str = os.getenv("SEARCH_API_KEY", "").strip()
     
     REQUEST_TIMEOUT_SECONDS: int = 15
 
