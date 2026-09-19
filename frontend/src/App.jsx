@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DotField from './components/DotField';
 import logoImg from './assets/logo.png';
+import SignInPageDemo from './components/ui/demo';
 import {
   Shield,
   Search,
@@ -15,14 +16,13 @@ import {
   ChevronDown,
   Lock,
   ArrowUp,
-  Database,
-  Network,
-  Scale
+  UserCheck,
+  LogIn
 } from 'lucide-react';
 
 export default function App() {
+  const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'login'
   const [activeCandidate, setActiveCandidate] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
 
   const candidates = [
     {
@@ -76,19 +76,33 @@ export default function App() {
     }
   ];
 
-  const handleStartInvestigation = () => {
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      const demoEl = document.getElementById('demo-section');
-      if (demoEl) demoEl.scrollIntoView({ behavior: 'smooth' });
-    }, 500);
+  const handleOpenLogin = () => {
+    setCurrentView('login');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToLanding = () => {
+    setCurrentView('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (currentView !== 'landing') {
+      setCurrentView('landing');
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
+
+  // If user navigated to Login view
+  if (currentView === 'login') {
+    return <SignInPageDemo onBackToHome={handleBackToLanding} />;
+  }
 
   return (
     <div className="relative min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
@@ -146,13 +160,16 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Action Button */}
-          <button
-            onClick={() => scrollToSection('demo-section')}
-            className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95"
-          >
-            Investigate
-          </button>
+          {/* Action Button - Redirects to Login */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenLogin}
+              className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95 flex items-center gap-1.5"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -173,13 +190,13 @@ export default function App() {
           Verify digital footprints that speak truth
         </h1>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Get Started redirects to Login */}
         <div className="flex flex-wrap items-center justify-center gap-3.5 mb-10">
           <button
-            onClick={handleStartInvestigation}
+            onClick={handleOpenLogin}
             className="px-6 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 font-semibold text-sm transition-all duration-300 shadow-xl shadow-white/5 hover:scale-105 active:scale-95 flex items-center gap-2"
           >
-            <span>{isSearching ? 'Correlating...' : 'Get started'}</span>
+            <span>Get started</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
@@ -233,7 +250,7 @@ export default function App() {
             <div className="font-mono text-xs text-white/50 mb-2">STAGE 02</div>
             <h3 className="font-bold text-sm text-white mb-2">Multi-Discovery</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Dispatches authenticated discovery across code repositories, recorded technical talks, and public registries.
+              Dispatches authenticated discovery across code repositories, recorded technical presentations, and open registries.
             </p>
           </div>
 
@@ -367,6 +384,20 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {/* CTA to start full investigation in login view */}
+              <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span className="text-xs text-neutral-400 font-mono">
+                  Want to run a real-time investigation with full GPG, YouTube, and GitHub signals?
+                </span>
+                <button
+                  onClick={handleOpenLogin}
+                  className="px-5 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-colors flex items-center gap-2 shrink-0"
+                >
+                  <span>Launch Custom Case</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -398,7 +429,7 @@ export default function App() {
               </span>
             </div>
             <p className="text-sm font-semibold text-white mb-3">
-              Finding: "Subject is lead contributor on zero-trust-proxy"
+              Finding: "Alex Kumar is lead committer on zero-trust-proxy"
             </p>
             <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
               <div className="flex items-start gap-2">
@@ -509,13 +540,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
+            <button
+              onClick={handleOpenLogin}
+              className="text-neutral-400 hover:text-white transition-colors"
+            >
+              Sign In
+            </button>
             <a
               href="https://github.com/abdulkani007/PRISM"
               target="_blank"
               rel="noopener noreferrer"
               className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5"
             >
-              <span>GitHub Repository</span>
+              <span>GitHub</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
