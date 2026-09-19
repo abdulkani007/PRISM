@@ -7,7 +7,6 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertTriangle,
-  X,
   ArrowRight,
   GitBranch,
   FileText,
@@ -15,13 +14,13 @@ import {
   Layers,
   ChevronDown,
   Lock,
-  Cpu,
-  HelpCircle,
-  ArrowUp
+  ArrowUp,
+  Database,
+  Network,
+  Scale
 } from 'lucide-react';
 
 export default function App() {
-  const [showDemo, setShowDemo] = useState(false);
   const [activeCandidate, setActiveCandidate] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -36,14 +35,14 @@ export default function App() {
       org: 'Nexus Defense / CyberShield Labs',
       education: 'Stanford Institute of Tech',
       evidence: [
-        { source: 'GitHub REST API', detail: '42 public repos, Zero-Trust Architecture contributor.' },
-        { source: 'YouTube Data API', detail: 'Keynote Speaker at CyberSec Summit 2024.' },
+        { source: 'Developer Registry', detail: '42 public repositories, Zero-Trust Architecture contributor.' },
+        { source: 'Conference Recording', detail: 'Keynote Speaker at CyberSec Summit 2024.' },
         { source: 'Public GPG Keyring', detail: 'GPG Key matches committer corporate email domain.' },
       ],
       conflict: {
         item: 'Institutional Affiliation',
-        claimA: 'GitHub Bio: Staff Security Engineer @ Nexus Defense',
-        claimB: 'Conference Schedule: Head of Research @ CyberShield Labs',
+        claimA: 'Public Bio: Staff Security Engineer @ Nexus Defense',
+        claimB: 'Conference Registry: Head of Research @ CyberShield Labs',
         resolution: 'Flagged for Human Investigator Verification'
       }
     },
@@ -57,7 +56,7 @@ export default function App() {
       org: 'Open Security Foundation',
       education: 'MIT CSAIL',
       evidence: [
-        { source: 'ArXiv Index', detail: 'Co-author on adversarial prompt smuggling research.' }
+        { source: 'Scholarly Index', detail: 'Co-author on adversarial prompt smuggling research.' }
       ],
       conflict: null
     },
@@ -71,7 +70,7 @@ export default function App() {
       org: 'FinTech Systems Inc',
       education: 'University of Waterloo',
       evidence: [
-        { source: 'Public Web', detail: 'iOS Swift utility developer. Dissimilar discipline.' }
+        { source: 'Public Web', detail: 'iOS Swift utility developer. Dissimilar technical discipline.' }
       ],
       conflict: null
     }
@@ -81,10 +80,9 @@ export default function App() {
     setIsSearching(true);
     setTimeout(() => {
       setIsSearching(false);
-      setShowDemo(true);
       const demoEl = document.getElementById('demo-section');
       if (demoEl) demoEl.scrollIntoView({ behavior: 'smooth' });
-    }, 600);
+    }, 500);
   };
 
   const scrollToSection = (id) => {
@@ -116,7 +114,10 @@ export default function App() {
       <header className="sticky top-0 z-40 w-full pt-5 px-4 sm:px-8 pointer-events-none">
         <div className="max-w-4xl mx-auto h-14 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl px-5 flex items-center justify-between pointer-events-auto shadow-2xl shadow-black">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1 shadow-md transition-transform duration-300 hover:scale-105">
               <img src={logoImg} alt="PRISM Logo" className="w-full h-full object-contain" />
             </div>
@@ -141,7 +142,7 @@ export default function App() {
               onClick={() => scrollToSection('architecture')}
               className="hover:text-white transition-colors duration-200"
             >
-              Architecture
+              Platform Architecture
             </button>
           </nav>
 
@@ -160,7 +161,7 @@ export default function App() {
         {/* Subtitle Pill */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/15 backdrop-blur-md mb-8 transition-transform duration-300 hover:scale-105">
           <span className="px-2 py-0.5 rounded-full bg-white text-black text-[10px] font-extrabold uppercase tracking-wider">
-            NEW
+            PLATFORM
           </span>
           <span className="text-xs text-neutral-300 font-medium">
             Evidence-First Digital Identity Intelligence
@@ -195,7 +196,7 @@ export default function App() {
           Discover • Correlate • Verify • Explain
         </p>
 
-        {/* Scroll Indicator with slight motion */}
+        {/* Scroll Indicator */}
         <button
           onClick={() => scrollToSection('workflow')}
           className="flex flex-col items-center gap-2 text-xs font-mono text-neutral-400 hover:text-white transition-colors duration-200 animate-bounce"
@@ -209,7 +210,7 @@ export default function App() {
       <section id="workflow" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
         <div className="mb-14 text-center sm:text-left">
           <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
-            01 / Architecture Flow
+            01 / Investigation Pipeline
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Workflow
@@ -222,9 +223,9 @@ export default function App() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
             <div className="font-mono text-xs text-white/50 mb-2">STAGE 01</div>
-            <h3 className="font-bold text-sm text-white mb-2">Consented Input</h3>
+            <h3 className="font-bold text-sm text-white mb-2">Consented Ingestion</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Ingests authorized reference portrait, user profile, and seed hints (School, College, Org).
+              Ingests authorized reference portrait, user profile, and seed hints (School, College, Organization).
             </p>
           </div>
 
@@ -232,13 +233,13 @@ export default function App() {
             <div className="font-mono text-xs text-white/50 mb-2">STAGE 02</div>
             <h3 className="font-bold text-sm text-white mb-2">Multi-Discovery</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Dispatches authenticated queries across GitHub API, YouTube Data API, and public registries.
+              Dispatches authenticated discovery across code repositories, recorded technical talks, and public registries.
             </p>
           </div>
 
           <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
             <div className="font-mono text-xs text-white/50 mb-2">STAGE 03</div>
-            <h3 className="font-bold text-sm text-white mb-2">Candidate Eval</h3>
+            <h3 className="font-bold text-sm text-white mb-2">Candidate Evaluation</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
               Generates Candidates 1–4, evaluates context overlap, and triggers clarifying questions if uncertain.
             </p>
@@ -259,7 +260,7 @@ export default function App() {
         <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
-              Interactive Demonstration
+              Interactive Platform Demonstration
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               Multi-Candidate Dossier
@@ -397,16 +398,16 @@ export default function App() {
               </span>
             </div>
             <p className="text-sm font-semibold text-white mb-3">
-              Finding: "Alex Kumar is lead committer on zero-trust-proxy"
+              Finding: "Subject is lead contributor on zero-trust-proxy"
             </p>
             <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
-                <span>GitHub API: Repository created and maintained by @alex-dev-sec.</span>
+                <span>Code Registry: Repository created and committed by @alex-dev-sec.</span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
-                <span>YouTube API: Presentation on zero-trust-proxy given at CyberSec 2024.</span>
+                <span>Conference Keynote: Presentation on zero-trust-proxy given at CyberSec 2024.</span>
               </div>
             </div>
             <div className="mt-4 text-xs text-neutral-400">
@@ -430,7 +431,7 @@ export default function App() {
             <div className="space-y-2 text-xs font-mono bg-black/60 p-3.5 rounded-xl border border-white/10 text-neutral-300">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
-                <span>Source A (GitHub Bio): "Staff Security Engineer @ Nexus Defense"</span>
+                <span>Source A (Public Bio): "Staff Security Engineer @ Nexus Defense"</span>
               </div>
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0 mt-0.5" />
@@ -444,42 +445,42 @@ export default function App() {
         </div>
       </section>
 
-      {/* 7. ARCHITECTURE & BOUNDARIES SECTION */}
+      {/* 7. PLATFORM ARCHITECTURE SECTION */}
       <section id="architecture" className="relative z-10 py-24 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10">
         <div className="mb-14 text-center sm:text-left">
           <span className="text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold block mb-1">
-            03 / System Design
+            03 / Platform Architecture
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Architecture
+            Platform Capabilities
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-xl">
-            Modular Python FastAPI orchestration, Groq LPU sub-second inference, and strict zero-trust boundaries.
+            Core functional intelligence layers designed for high-assurance entity resolution and zero private account intrusion.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">INTERFACE</div>
-            <h3 className="font-bold text-sm text-white mb-2">React 18 + Vite</h3>
+            <div className="font-mono text-xs text-white/50 mb-2">LAYER 01</div>
+            <h3 className="font-bold text-sm text-white mb-2">Ingestion & Discovery</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Ultra-lightweight monochrome analyst console with interactive React Bits DotField canvas.
+              Dispatches authenticated queries across public developer footprints, recorded technical presentations, and academic registries based on consented seed input.
             </p>
           </div>
 
           <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">ORCHESTRATION</div>
-            <h3 className="font-bold text-sm text-white mb-2">FastAPI Gateway</h3>
+            <div className="font-mono text-xs text-white/50 mb-2">LAYER 02</div>
+            <h3 className="font-bold text-sm text-white mb-2">Context Triangulation Core</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Async REST pipeline coordinating GitHub REST API, YouTube Data API, and Pydantic schemas.
+              Correlates disparate usernames, educational backgrounds, and institutional affiliations into multi-candidate clusters rather than speculative single matches.
             </p>
           </div>
 
           <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">REASONING CORE</div>
-            <h3 className="font-bold text-sm text-white mb-2">Groq LPU (Llama-3)</h3>
+            <div className="font-mono text-xs text-white/50 mb-2">LAYER 03</div>
+            <h3 className="font-bold text-sm text-white mb-2">Provenance & Conflict Engine</h3>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Sub-second entity extraction, conflict deduction, and clarifying question formulation.
+              Maintains cryptographic evidence hashes, calculates explainable confidence scores, and immediately alerts investigators to conflicting claims.
             </p>
           </div>
         </div>
@@ -491,7 +492,7 @@ export default function App() {
             <span>Strict Operational Boundaries (Zero-Trust)</span>
           </div>
           <p className="text-neutral-400 leading-relaxed">
-            PRISM operates strictly on organizer-consented seed imagery and authenticated, publicly indexed endpoints. The system enforces an absolute zero-tolerance policy against private account intrusion, credential theft, password spraying, and leaked or dark-web databases.
+            PRISM operates strictly on organizer-consented seed imagery and authenticated, publicly indexed endpoints. The platform enforces an absolute zero-tolerance policy against private account intrusion, credential theft, password spraying, and leaked or dark-web databases.
           </p>
         </div>
       </section>
@@ -504,7 +505,7 @@ export default function App() {
               <img src={logoImg} alt="PRISM Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold tracking-wider">PRISM</span>
-            <span>• NEURAX 3.0 (Domain 3: AI in Cybersecurity)</span>
+            <span>• Digital Identity Intelligence Platform</span>
           </div>
 
           <div className="flex items-center gap-6">
