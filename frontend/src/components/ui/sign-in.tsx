@@ -44,13 +44,29 @@ const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, delay: string }) => (
-  <div className={`animate-testimonial ${delay} flex items-start gap-3 rounded-3xl bg-card/40 dark:bg-zinc-800/40 backdrop-blur-xl border border-white/10 p-5 w-64 shadow-xl`}>
-    <img src={testimonial.avatarSrc} className="h-10 w-10 object-cover rounded-2xl" alt="avatar" />
-    <div className="text-sm leading-snug">
-      <p className="flex items-center gap-1 font-medium text-white">{testimonial.name}</p>
-      <p className="text-muted-foreground text-xs">{testimonial.handle}</p>
-      <p className="mt-1 text-foreground/80 text-xs">{testimonial.text}</p>
+const TestimonialCard = ({
+  testimonial,
+  delay,
+  floatClass = ""
+}: {
+  testimonial: Testimonial;
+  delay: string;
+  floatClass?: string;
+}) => (
+  <div className={`animate-testimonial ${delay} flex-1 max-w-[270px]`}>
+    <div
+      className={`${floatClass} flex items-start gap-3 rounded-2xl sm:rounded-3xl bg-black/70 backdrop-blur-xl border border-white/15 p-4 sm:p-5 shadow-2xl transition-all duration-300 hover:border-white/40 hover:bg-black/85 hover:scale-[1.02]`}
+    >
+      <img
+        src={testimonial.avatarSrc}
+        className="h-10 w-10 object-cover rounded-xl sm:rounded-2xl border border-white/10 shrink-0"
+        alt={testimonial.name}
+      />
+      <div className="text-sm leading-snug">
+        <p className="flex items-center gap-1 font-semibold text-white tracking-tight">{testimonial.name}</p>
+        <p className="text-neutral-400 text-xs">{testimonial.handle}</p>
+        <p className="mt-1.5 text-neutral-300 text-xs leading-relaxed">{testimonial.text}</p>
+      </div>
     </div>
   </div>
 );
@@ -164,10 +180,19 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             <div className={`absolute inset-0 rounded-3xl ${testimonials.length > 0 ? "bg-gradient-to-t from-black/80 via-black/30 to-transparent" : "bg-gradient-to-t from-black/30 via-transparent to-black/10"}`} />
           </div>
           {testimonials.length > 0 && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
-              <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
-              {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" /></div>}
-              {testimonials[2] && <div className="hidden 2xl:flex"><TestimonialCard testimonial={testimonials[2]} delay="animate-delay-1400" /></div>}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row items-end gap-3 sm:gap-4 px-4 sm:px-6 w-full max-w-2xl justify-center z-10 pointer-events-auto">
+              <TestimonialCard
+                testimonial={testimonials[0]}
+                delay="animate-delay-1000"
+                floatClass="animate-float-1"
+              />
+              {testimonials[1] && (
+                <TestimonialCard
+                  testimonial={testimonials[1]}
+                  delay="animate-delay-1200"
+                  floatClass="animate-float-2"
+                />
+              )}
             </div>
           )}
         </section>

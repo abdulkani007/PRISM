@@ -129,7 +129,7 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
     <div className="bg-background text-foreground min-h-screen">
       <SignInPage
         heroImageSrc={loginImg}
-        testimonials={[]}
+        testimonials={sampleTestimonials}
         onSignIn={handleSignIn}
         onGoogleSignIn={handleGoogleSignIn}
         onResetPassword={handleResetPassword}
