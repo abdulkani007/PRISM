@@ -1,4 +1,4 @@
-# ID-SHIELD AI
+# PRISM
 ### Evidence-First Digital Identity Intelligence & Public Footprint Verification System
 
 [![Hackathon](https://img.shields.io/badge/NEURAX_Hackathon_3.0-Domain_3:_AI_in_Cybersecurity-00E5FF?style=for-the-badge&logo=target&logoColor=white)](https://github.com/)
@@ -19,7 +19,7 @@
 
 ## 1. Hero Section
 
-**ID-SHIELD AI** is an evidence-first digital identity intelligence and public footprint verification system engineered for high-assurance entity resolution across fragmented open web sources. Built specifically for **NEURAX HACKATHON 3.0 (Domain 3: AI in Cybersecurity)**, the system addresses the critical security challenge of authenticating an individual’s public professional footprint from an organizer-provided, consented reference portrait and sparse seed context. Rather than operating as an unverified scraping bot or raw web indexer, ID-SHIELD AI introduces an auditable intelligence pipeline that independently discovers candidate public profiles, maps cross-platform identities, extracts verifiable career milestones, detects conflicting institutional claims, and synthesizes an explainable, provenance-tracked identity graph.
+**PRISM** is an evidence-first digital identity intelligence and public footprint verification system engineered for high-assurance entity resolution across fragmented open web sources. Built specifically for **NEURAX HACKATHON 3.0 (Domain 3: AI in Cybersecurity)**, the system addresses the critical security challenge of authenticating an individual’s public professional footprint from an organizer-provided, consented reference portrait and sparse seed context. Rather than operating as an unverified scraping bot or raw web indexer, PRISM introduces an auditable intelligence pipeline that independently discovers candidate public profiles, maps cross-platform identities, extracts verifiable career milestones, detects conflicting institutional claims, and synthesizes an explainable, provenance-tracked identity graph.
 
 * **Project Stage**: Checkpoint 1 (Comprehensive Architecture, Threat Modeling & Technical Specification).
 * **Target Domain**: AI in Cybersecurity — Public Profile & Digital Footprint Intelligence.
@@ -34,7 +34,7 @@
 - [3. Executive Overview](#3-executive-overview)
 - [4. Problem Statement](#4-problem-statement)
 - [5. Our Solution](#5-our-solution)
-- [6. What Makes ID-SHIELD AI Unique?](#6-what-makes-id-shield-ai-unique)
+- [6. What Makes PRISM Unique?](#6-what-makes-PRISM-unique)
   - [6.1 Evidence-First Identity Resolution](#61-evidence-first-identity-resolution)
   - [6.2 Provenance-Aware Intelligence](#62-provenance-aware-intelligence)
   - [6.3 Cross-Platform Entity Resolution](#63-cross-platform-entity-resolution)
@@ -82,7 +82,7 @@ Existing approaches rely either on opaque search engine results or brute-force w
 1. **False Collisions**: Conflating two distinct individuals sharing common names or overlapping technical domains.
 2. **Uncritical Ingestion**: Ingesting hallucinated or malicious claims directly into security dossiers without corroboration.
 
-**ID-SHIELD AI** replaces speculative scraping with **Evidence-First Digital Identity Intelligence**. The platform operates under a strict epistemology that rigorously demarcates information categories:
+**PRISM** replaces speculative scraping with **Evidence-First Digital Identity Intelligence**. The platform operates under a strict epistemology that rigorously demarcates information categories:
 
 | Classification | Definition & Treatment |
 |---|---|
@@ -108,13 +108,13 @@ Public digital identities are inherently decentralized, non-standardized, and vu
 * **Deliberate Deception & Sybil Profiles**: Malicious actors create synthetic or impersonated profiles across peripheral networks to engineer credibility.
 * **Manual Bottlenecks**: Human analysts spend hours manually opening tabs, cross-checking publication dates against commit histories, and copying links into static spreadsheets without continuous provenance tracking.
 
-ID-SHIELD AI transforms this manual, error-prone workflow into an automated, mathematically sound, and auditable verification pipeline.
+PRISM transforms this manual, error-prone workflow into an automated, mathematically sound, and auditable verification pipeline.
 
 ---
 
 ## 5. Our Solution
 
-ID-SHIELD AI resolves digital identities through a deterministic, four-stage intelligence loop:
+PRISM resolves digital identities through a deterministic, four-stage intelligence loop:
 
 ```
   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -134,10 +134,10 @@ ID-SHIELD AI resolves digital identities through a deterministic, four-stage int
 
 ---
 
-## 6. What Makes ID-SHIELD AI Unique?
+## 6. What Makes PRISM Unique?
 
 ### 6.1 Evidence-First Identity Resolution
-Traditional intelligence tools prioritize quantity over integrity, scraping hundreds of links without verifying veracity. ID-SHIELD AI enforces an **Evidence-First Rule**: no profile attribute (employer, role, education, location) is elevated to a confirmed finding without an attached cryptographic URI, API response excerpt, or verifiable public timestamp.
+Traditional intelligence tools prioritize quantity over integrity, scraping hundreds of links without verifying veracity. PRISM enforces an **Evidence-First Rule**: no profile attribute (employer, role, education, location) is elevated to a confirmed finding without an attached cryptographic URI, API response excerpt, or verifiable public timestamp.
 
 ### 6.2 Provenance-Aware Intelligence
 Every single entity, edge, and event in the system includes metadata detailing:
@@ -148,13 +148,13 @@ Every single entity, edge, and event in the system includes metadata detailing:
 * Evidence Snippet / Raw Payload Hash
 
 ### 6.3 Cross-Platform Entity Resolution
-ID-SHIELD AI does not rely on naive exact-string matching. It correlates candidates across disparate platforms through multi-factor semantic triangulation:
+PRISM does not rely on naive exact-string matching. It correlates candidates across disparate platforms through multi-factor semantic triangulation:
 * Matching social links embedded inside GitHub README profiles to YouTube channel bios.
 * Aligning open-source repository commit metadata with conference slide deck repositories.
 * Matching corporate domain email patterns (`user@company.org`) across public GPG keys and technical publications.
 
 ### 6.4 Conflict Detection
-When public sources present mutually incompatible information, traditional scrapers either overwrite the record or present confusing duplicates. ID-SHIELD AI isolates discrepancies as first-class domain entities:
+When public sources present mutually incompatible information, traditional scrapers either overwrite the record or present confusing duplicates. PRISM isolates discrepancies as first-class domain entities:
 
 ```
 [SOURCE: GitHub API Profile]      ──►  Company: "Apex Security Labs"  ──┐
@@ -164,7 +164,7 @@ When public sources present mutually incompatible information, traditional scrap
 ```
 
 ### 6.5 Identity Graph Representation
-Rather than dumping text into a flat report, ID-SHIELD AI constructs a typed graph:
+Rather than dumping text into a flat report, PRISM constructs a typed graph:
 * **Nodes**: `Person`, `Alias`, `Organization`, `Repository`, `ConferenceTalk`, `Publication`.
 * **Edges**: `MAINTAINS`, `AFFILIATED_WITH`, `SPOKE_AT`, `CO_AUTHORED`, `CROSS_REFERENCED`.
 * Every edge encapsulates confidence scores and supporting evidence pointers.
@@ -173,7 +173,7 @@ Rather than dumping text into a flat report, ID-SHIELD AI constructs a typed gra
 Public actions are arranged along an immutable chronological axis. By tracking creation dates of repositories, release tags, video uploads, and conference appearances, the system reconstructs an individual's career evolution and flags chronological anomalies (e.g., claiming senior leadership at an organization prior to its legal incorporation date).
 
 ### 6.7 Explainable Confidence Scoring
-We reject opaque "99.8% AI accuracy" metrics. ID-SHIELD AI calculates an **Explainable Evidence Confidence Score (EECS)** derived strictly from weighted verifiable attributes:
+We reject opaque "99.8% AI accuracy" metrics. PRISM calculates an **Explainable Evidence Confidence Score (EECS)** derived strictly from weighted verifiable attributes:
 * `+30%`: Verified cross-platform mutual backlink.
 * `+25%`: Identical cryptographic key or verified domain association.
 * `+20%`: Consistent handle across platforms with matching display name.
@@ -187,7 +187,7 @@ User-supplied input is permanently tagged as `CLAIM_UNVERIFIED`. The system refu
 
 ## 7. System Architecture
 
-The following diagram illustrates the complete end-to-end architecture of ID-SHIELD AI, tracing the boundary between client ingestion, authenticated retrieval, secure AI analysis, and graph synthesis.
+The following diagram illustrates the complete end-to-end architecture of PRISM, tracing the boundary between client ingestion, authenticated retrieval, secure AI analysis, and graph synthesis.
 
 ```mermaid
 flowchart TD
@@ -317,7 +317,7 @@ The resolution pipeline evaluates candidate identity vectors through multiple or
 
 ## 10. Evidence Model
 
-Every finding generated by ID-SHIELD AI conforms to a rigorous evidence schema. No finding exists in isolation; it must cite an authenticated observation:
+Every finding generated by PRISM conforms to a rigorous evidence schema. No finding exists in isolation; it must cite an authenticated observation:
 
 ```json
 {
@@ -394,7 +394,7 @@ flowchart LR
 
 ## 12. API & Integration Architecture
 
-ID-SHIELD AI relies on deterministic, authenticated external APIs. No undocumented web scraping or bypass proxies are utilized.
+PRISM relies on deterministic, authenticated external APIs. No undocumented web scraping or bypass proxies are utilized.
 
 | API Name | Operational Purpose | Extracted Data Types | Auth Method | Code Location | Status |
 |---|---|---|---|---|---|
@@ -407,7 +407,7 @@ ID-SHIELD AI relies on deterministic, authenticated external APIs. No undocument
 
 ## 13. Groq / AI Correlation Layer
 
-Large Language Models in ID-SHIELD AI are deployed as **deterministic semantic parsers and correlators**, not ungrounded text generators.
+Large Language Models in PRISM are deployed as **deterministic semantic parsers and correlators**, not ungrounded text generators.
 
 ```
        APIs provide immutable EVIDENCE
@@ -445,7 +445,7 @@ Every AI statement links to an authenticated SOURCE URI
 
 ## 15. Privacy, Consent & Ethical Boundaries
 
-ID-SHIELD AI is engineered strictly for authorized, defensive, and compliance-driven identity verification.
+PRISM is engineered strictly for authorized, defensive, and compliance-driven identity verification.
 
 > [!IMPORTANT]
 > **Strict Operational Boundaries**
@@ -591,8 +591,8 @@ erDiagram
 
 ### 1. Repository Setup
 ```bash
-git clone https://github.com/your-org/id-shield-ai.git
-cd id-shield-ai
+git clone https://github.com/abdulkani007/PRISM.git
+cd PRISM
 ```
 
 ### 2. Backend Initialization
@@ -616,7 +616,7 @@ cd ../frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173` to access the ID-SHIELD AI Intelligence Dashboard.
+Open `http://localhost:5173` to access the PRISM Intelligence Dashboard.
 
 ---
 
@@ -626,7 +626,7 @@ Create a `.env` file in the `backend/` directory based on the following template
 
 ```bash
 # -----------------------------------------------------------------------------
-# ID-SHIELD AI: ENVIRONMENT CONFIGURATION TEMPLATE (.env.example)
+# PRISM: ENVIRONMENT CONFIGURATION TEMPLATE (.env.example)
 # -----------------------------------------------------------------------------
 
 # Server Environment
@@ -710,7 +710,7 @@ REQUEST_TIMEOUT_SECONDS=15
 
 ```
 ═════════════════════════════════════════════════════════════════════════════════
-                      ID-SHIELD AI INTELLIGENCE DOSSIER
+                      PRISM INTELLIGENCE DOSSIER
 ═════════════════════════════════════════════════════════════════════════════════
 Target Subject : Alex Kumar
 Primary Handle : alex-dev-sec
@@ -738,11 +738,11 @@ Classification : CORROBORATED WITH CONFLICTS (Confidence: 84%)
 
 ## 23. UI & Dashboard
 
-The ID-SHIELD AI analyst console is designed around situational awareness, quick triage, and evidentiary drill-down:
+The PRISM analyst console is designed around situational awareness, quick triage, and evidentiary drill-down:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  ID-SHIELD AI  |  Investigation Console: INV-2026-0919-01            [STATUS: ACTIVE]  │
+│  PRISM  |  Investigation Console: INV-2026-0919-01            [STATUS: ACTIVE]  │
 ├───────────────────────────────────┬────────────────────────────────────────────────────┤
 │ 1. IDENTITY DOSSIER               │ 2. INTERACTIVE IDENTITY GRAPH                      │
 │                                   │                                                    │
@@ -785,7 +785,7 @@ The ID-SHIELD AI analyst console is designed around situational awareness, quick
 
 In accordance with ethical AI standards and technical honesty, the following constraints are acknowledged:
 
-1. **Public Surface Boundary**: ID-SHIELD AI operates strictly on open, indexed, or API-accessible endpoints. Walled gardens or private internal repositories are intentionally inaccessible.
+1. **Public Surface Boundary**: PRISM operates strictly on open, indexed, or API-accessible endpoints. Walled gardens or private internal repositories are intentionally inaccessible.
 2. **Upstream Quotas**: Deep investigation speed is governed by external API rate limits (e.g., GitHub 5,000 req/hr authenticated limit).
 3. **Common Name Ambiguity**: Resolving individuals with common legal names lacking unique handles or organizational anchors remains probabilistically constrained.
 4. **Biometric Pre-condition**: Facial match verification is conditional upon high-resolution, unoccluded reference imagery and compliant consent scopes.
@@ -823,7 +823,7 @@ flowchart LR
 
 Designed specifically to satisfy the **NEURAX HACKATHON 3.0** evaluation criteria across all milestones:
 
-| Milestone | Marks | Criteria & ID-SHIELD AI Implementation |
+| Milestone | Marks | Criteria & PRISM Implementation |
 |---|---|---|
 | **Checkpoint 1** | 15 | **README**: Problem Understanding (5), Architecture (5), Approach (5) |
 | **Checkpoint 2** | 25 | **Partial Execution**: Functional API workers, UI mockups, Groq correlation prototype |
@@ -833,7 +833,7 @@ Designed specifically to satisfy the **NEURAX HACKATHON 3.0** evaluation criteri
 
 ## 28. Why This Is Different
 
-| Feature / Dimension | Traditional Search Engine | Generic Web Scraper | Reverse Image Tool | ID-SHIELD AI |
+| Feature / Dimension | Traditional Search Engine | Generic Web Scraper | Reverse Image Tool | PRISM |
 |---|---|---|---|---|
 | **Primary Goal** | Page retrieval | DOM harvesting | Visual similarity | **Evidence-first entity verification** |
 | **Evidence Traceability** | None (Page snippet only) | None (Raw strings) | Weak (Image URL match) | **Cryptographic hashes & URI audit logs** |
@@ -884,7 +884,7 @@ License: **To Be Determined** (Proprietary to Hackathon Team during judging peri
 ## 32. Final Call to Action
 
 ```
-ID-SHIELD AI
+PRISM
 Discover. Correlate. Verify. Explain.
 ```
 
