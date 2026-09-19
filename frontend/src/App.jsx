@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DotField from './components/DotField';
 import logoImg from './assets/logo.png';
 import SignInPageDemo from './components/ui/demo';
+import Dashboard from './components/Dashboard';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -19,7 +20,8 @@ import {
   ArrowUp,
   LogIn,
   LogOut,
-  User
+  User,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function App() {
@@ -107,12 +109,8 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      const demoEl = document.getElementById('demo-section');
-      if (demoEl) demoEl.scrollIntoView({ behavior: 'smooth' });
-    }, 500);
+    setCurrentView('dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToSection = (id) => {
@@ -128,6 +126,24 @@ export default function App() {
     }
   };
 
+  // If user navigated to Dashboard view
+  if (currentView === 'dashboard') {
+    return (
+      <Dashboard
+        currentUser={currentUser}
+        onSignOut={() => {
+          handleSignOut();
+          setCurrentView('landing');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onBackToHome={() => {
+          setCurrentView('landing');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
+  }
+
   // If user navigated to Login view
   if (currentView === 'login') {
     return (
@@ -138,7 +154,7 @@ export default function App() {
         }}
         onAuthSuccess={(user) => {
           setCurrentUser(user);
-          setCurrentView('landing');
+          setCurrentView('dashboard');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
@@ -205,14 +221,34 @@ export default function App() {
           <div className="flex items-center gap-3">
             {currentUser ? (
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setCurrentView('dashboard');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-3.5 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-all duration-200 shadow-md hover:scale-105 active:scale-95 flex items-center gap-1.5"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Dashboard</span>
+                </button>
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName || "User"}
-                    className="w-7 h-7 rounded-full border border-white/20 object-cover"
+                    className="w-7 h-7 rounded-full border border-white/20 object-cover cursor-pointer"
+                    onClick={() => {
+                      setCurrentView('dashboard');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs">
+                  <div
+                    onClick={() => {
+                      setCurrentView('dashboard');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs cursor-pointer"
+                  >
                     <User className="w-3.5 h-3.5" />
                   </div>
                 )}
