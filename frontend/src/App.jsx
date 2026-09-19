@@ -8,7 +8,7 @@ import { ContainerScroll } from './components/ui/container-scroll-animation';
 import TargetCursor from './components/ui/TargetCursor';
 import BlurText from './components/ui/BlurText';
 import TextType from './components/ui/TextType';
-import ASCIIText from './components/ui/ASCIIText';
+import GlitchText from './components/ui/GlitchText';
 import { auth, signOut, onAuthStateChanged } from './lib/firebase';
 import {
   Shield,
@@ -370,18 +370,15 @@ export default function App() {
                   className="inline-block text-white font-extrabold tracking-tight"
                 />
               </h2>
-              <div className="space-y-2">
-                <div className="relative w-full max-w-4xl h-24 sm:h-28 md:h-32 mx-auto overflow-hidden flex items-center justify-center">
-                  <ASCIIText
-                    text="Proven Across Public Registries"
-                    asciiFontSize={5}
-                    textFontSize={160}
-                    enableWaves={true}
-                  />
-                </div>
-                <div className="text-xs sm:text-sm font-mono tracking-widest text-neutral-400 uppercase">
+              <div className="pt-2 pb-1 flex items-center justify-center">
+                <GlitchText
+                  speed={0.8}
+                  enableShadows={true}
+                  enableOnHover={false}
+                  className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-200"
+                >
                   Proven Across Public Registries
-                </div>
+                </GlitchText>
               </div>
             </div>
           }
