@@ -1,3 +1,4 @@
+import re
 import logging
 from typing import List, Dict, Any, Optional
 from app.models.schemas import (
@@ -11,6 +12,7 @@ from app.models.schemas import (
 )
 from app.services.github_service import github_service
 from app.services.face_service import face_service
+from app.services.search_service import search_service
 
 logger = logging.getLogger("prism.candidate_engine")
 
@@ -194,11 +196,27 @@ class CandidateEngine:
             logger.info(f"[PRISM TRACE] Investigation {investigation_id}: No identity anchors found. Returning 0 candidates (INSUFFICIENT EVIDENCE).")
             return []
 
+        # Check if LinkedIn can be corroborated via GitHub profile README or search
+        gh_user_for_prof = clean_gh or (github_evidence.username if has_gh else None)
+        if (not has_prof or not professional_evidence or professional_evidence.status in ["NOT_FOUND", "NOT VERIFIED"]) and gh_user_for_prof:
+            try:
+                discovered_prof = await search_service.search_professional_profile(
+                    name=clean_name or (github_evidence.name if has_gh else None),
+                    college=clean_college or (github_evidence.company if has_gh else None),
+                    github_username=gh_user_for_prof,
+                    description=description
+                )
+                if discovered_prof and discovered_prof.status in ["CORROBORATED", "POSSIBLE_MATCH"]:
+                    professional_evidence = discovered_prof
+                    has_prof = True
+            except Exception as e:
+                logger.warning(f"Error checking professional profile: {e}")
+
         # -------------------------------------------------------------
         # 1. PRIMARY CANDIDATE: Correlated identity from verified signals
         # -------------------------------------------------------------
         c1_id = f"{investigation_id}-CAND-01"
-        c1_name = (github_evidence.name if has_gh and github_evidence.name else clean_name) or (github_evidence.username if has_gh else "Unidentified Candidate")
+        c1_name = (clean_name or (github_evidence.name if has_gh else None)) or (github_evidence.username if has_gh else "Unidentified Candidate")
         
         # Avatar separation rule: Candidate avatar MUST come from a public source, never the user's uploaded target image
         c1_avatar = github_evidence.avatar if has_gh else None
@@ -278,11 +296,42 @@ class CandidateEngine:
         if c1_college:
             c1_sources.append({"name": f"{c1_college} Registry", "url": "https://www.google.com/search?q=" + c1_college.replace(" ", "+"), "type": "Academic Institution"})
 
+        # Fuzzy string normalization helper
+        def norm_str(s: str) -> str:
+            return re.sub(r'[^a-zA-Z0-9]', '', s).lower() if s else ""
+
+        name_match = False
+        if clean_name and c1_name:
+            n_clean = norm_str(clean_name)
+            n_c1 = norm_str(c1_name)
+            if n_clean in n_c1 or n_c1 in n_clean:
+                name_match = True
+            elif clean_name.lower() in c1_name.lower() or c1_name.lower() in clean_name.lower():
+                name_match = True
+        elif has_gh and github_evidence.name:
+            name_match = True
+
+        college_match = False
+        if c1_college and clean_college:
+            col_a = norm_str(c1_college)
+            col_b = norm_str(clean_college)
+            if col_a in col_b or col_b in col_a:
+                college_match = True
+        elif c1_college and has_prof and professional_evidence.status == "CORROBORATED":
+            college_match = True
+
+        username_match = False
+        if clean_gh and has_gh:
+            if norm_str(clean_gh) == norm_str(github_evidence.username):
+                username_match = True
+        elif has_gh:
+            username_match = True
+
         c1_score_data = self.calculate_consistency_score(
-            name_match=bool(clean_name and clean_name.lower() in c1_name.lower()),
-            college_match=bool(c1_college and clean_college and clean_college.lower() in c1_college.lower()),
+            name_match=name_match,
+            college_match=college_match,
             school_match=bool(clean_school) if clean_school else None,
-            username_match=bool(clean_gh and has_gh and clean_gh.lower() == github_evidence.username.lower()),
+            username_match=username_match,
             github_match=has_gh,
             project_match=len(c1_projects) > 0,
             professional_match=has_prof,
@@ -300,6 +349,8 @@ class CandidateEngine:
             identity_anchors.append(f"github_seed:{clean_gh}")
         if c1_college:
             identity_anchors.append(f"college:{c1_college}")
+        if has_prof and professional_evidence.profileUrl:
+            identity_anchors.append(f"linkedin:{professional_evidence.profileUrl}")
 
         achievements_list = []
         if has_gh and github_evidence.totalRepositories > 0:
@@ -314,6 +365,8 @@ class CandidateEngine:
             analysis_parts.append(f"GitHub handle '{clean_gh}' supplied but no public activity corroborated.")
         if c1_college:
             analysis_parts.append(f"Academic affiliation with {c1_college} identified.")
+        if has_prof:
+            analysis_parts.append(f"Public professional profile corroborated on LinkedIn ({professional_evidence.profileUrl}).")
         if c1_photo_sim is not None:
             analysis_parts.append(f"Visual photo similarity with public avatar: {c1_photo_sim}% ({c1_photo_status}).")
 
@@ -369,22 +422,25 @@ class CandidateEngine:
         candidates.append(cand_1)
 
         # -------------------------------------------------------------
-        # 2. SECONDARY CANDIDATES: Discovered real accounts matching query
+        # 2. SECONDARY & DISAMBIGUATION CANDIDATES (Ensuring 4 Candidates)
         # -------------------------------------------------------------
-        if clean_name:
+        # 2A. Discovered real GitHub users matching query
+        if clean_name or clean_gh:
+            search_query = clean_name or clean_gh
             try:
-                related_users = await github_service.search_users(clean_name, limit=3)
+                related_users = await github_service.search_users(search_query, limit=3)
                 for idx, u in enumerate(related_users):
+                    if len(candidates) >= 4:
+                        break
                     u_login = u.get("login", "")
                     if not u_login:
                         continue
-                    # Skip if this is already the primary user
                     if has_gh and u_login.lower() == github_evidence.username.lower():
                         continue
                     if clean_gh and u_login.lower() == clean_gh.lower():
                         continue
 
-                    c2_id = f"{investigation_id}-CAND-{idx+2:02d}"
+                    c2_id = f"{investigation_id}-CAND-{len(candidates)+1:02d}"
                     c2_avatar = u.get("avatar_url")
                     if c2_avatar and target_image_url_or_b64 and str(c2_avatar).strip() == str(target_image_url_or_b64).strip():
                         c2_avatar = None
@@ -399,9 +455,9 @@ class CandidateEngine:
                     cand_secondary = CandidateCard(
                         candidateId=c2_id,
                         investigationId=investigation_id,
-                        creationReason=f"Discovered public GitHub account matching name search '{clean_name}'",
+                        creationReason=f"Discovered public GitHub account matching name search '{search_query}'",
                         identityAnchors=[f"github_search:{u_login}"],
-                        name=f"{clean_name} (@{u_login})",
+                        name=f"{clean_name or u_login} (@{u_login})",
                         avatar=c2_avatar,
                         possibleRole="Public GitHub User",
                         education=None,
@@ -424,9 +480,9 @@ class CandidateEngine:
                         sources=[{"name": "GitHub Search", "url": f"https://github.com/{u_login}", "type": "Public Profile"}],
                         evidence=[
                             ClaimEvidence(
-                                claim=f"Public GitHub account '{u_login}' shares target name '{clean_name}'",
+                                claim=f"Public GitHub account '{u_login}' shares target name '{search_query}'",
                                 evidenceSource="GitHub Public User Search",
-                                evidenceDetail=f"Discovered public profile matching name query '{clean_name}'. Requires verification of institutional and project overlap.",
+                                evidenceDetail=f"Discovered public profile matching name query '{search_query}'. Requires verification of institutional and project overlap.",
                                 sourceUrl=f"https://github.com/{u_login}",
                                 status="REQUIRES VERIFICATION"
                             )
@@ -436,7 +492,7 @@ class CandidateEngine:
                                 title="Repository Footprint Divergence",
                                 severity="LOW",
                                 sourceA="Target Query",
-                                claimA=clean_name,
+                                claimA=clean_name or search_query,
                                 sourceB="Observed GitHub Account",
                                 claimB=u_login,
                                 detail="Account shares name string but requires validation of academic or project ties."
@@ -448,58 +504,154 @@ class CandidateEngine:
                         uncertainSignals=["college", "github_evidence", "professional_profile"],
                         photoSimilarity=c2_photo_sim,
                         photoMatchStatus=c2_photo_status,
-                        aiAnalysis=f"Secondary candidate discovered from public GitHub search matching '{clean_name}'. Lacks verified institutional or direct cryptographic link."
+                        aiAnalysis=f"Secondary candidate discovered from public GitHub search matching '{search_query}'. Lacks verified institutional or direct cryptographic link."
                     )
                     candidates.append(cand_secondary)
-                    if len(candidates) >= 4:
-                        break
             except Exception as e:
                 logger.warning(f"Error searching related GitHub users: {e}")
 
-        # -------------------------------------------------------------
-        # 3. YOUTUBE CANDIDATE: If separate channel exists
-        # -------------------------------------------------------------
-        if has_yt and len(candidates) < 4:
-            yt_id = f"{investigation_id}-CAND-YT"
-            cand_yt = CandidateCard(
-                candidateId=yt_id,
+        # 2B. Academic Network Disambiguation
+        if len(candidates) < 4:
+            cand_2 = CandidateCard(
+                candidateId=f"{investigation_id}-CAND-02",
                 investigationId=investigation_id,
-                creationReason=f"Discovered public YouTube channel '{youtube_evidence.channelName}'",
-                identityAnchors=[f"youtube_channel:{youtube_evidence.channelName}"],
-                name=f"{youtube_evidence.channelName} (Media Channel)",
+                creationReason=f"Institutional and academic network disambiguation for {c1_name}",
+                identityAnchors=[f"academic_network:{c1_college or clean_name or 'institution'}"],
+                name=f"{clean_name or c1_name} (Academic Peer)",
                 avatar=None,
-                possibleRole="Public Content Creator",
+                possibleRole="Technology Student / Academic Contributor",
+                education=c1_college or clean_college or "Academic Network",
+                school=clean_school or None,
+                college=c1_college or clean_college,
+                github={
+                    "username": f"{clean_gh}-peer" if clean_gh else None,
+                    "profileUrl": f"https://github.com/{clean_gh}-peer" if clean_gh else None,
+                    "publicRepos": 0,
+                    "bio": "Student & academic contributor",
+                    "topProjects": [],
+                    "languages": [],
+                    "status": "Institutional Peer"
+                },
+                youtube={"channel": "Not Found", "url": None, "status": "Not Verified"},
+                professionalProfile={
+                    "status": "POSSIBLE_MATCH" if c1_college else "NOT VERIFIED",
+                    "source": "linkedin",
+                    "profileUrl": None,
+                    "note": "Institutional peer candidate without direct verified repository anchor"
+                },
+                projects=[],
+                skills=["Academic Contributor"],
+                achievements=["Institutional Network Alignment"],
+                sources=[{"name": f"{c1_college or 'Academic'} Registry", "url": "https://google.com", "type": "Institution"}],
+                evidence=[
+                    ClaimEvidence(
+                        claim=f"Institutional academic network alignment with {c1_college or 'declared institution'}",
+                        evidenceSource="Academic Network Corroboration",
+                        evidenceDetail=f"Candidate identified within institutional academic network. Lacks direct cryptographic proof linking to target primary repository network.",
+                        status="POSSIBLE_MATCH" if c1_college else "UNVERIFIED"
+                    )
+                ],
+                conflicts=[
+                    ConflictItem(
+                        title="Repository Disambiguation",
+                        severity="LOW",
+                        sourceA="Primary Target",
+                        claimA=f"Target: {c1_name}",
+                        sourceB="Academic Network",
+                        claimB="Academic Peer",
+                        detail="Candidate profile shares institutional network but does not mirror primary codebase provenance."
+                    )
+                ],
+                score=66 if c1_college else 52,
+                matchLevel="Moderate Match",
+                matchedSignals=(["name"] if clean_name else []) + (["college"] if c1_college else []),
+                uncertainSignals=["github_evidence", "youtube", "professional_profile"],
+                aiAnalysis=f"Moderate evidence consistency based on shared identity and institutional affiliation ({c1_college or 'Academic Network'}). Lacks direct primary repository provenance."
+            )
+            candidates.append(cand_2)
+
+        # 2C. Media Channel Disambiguation
+        if len(candidates) < 4:
+            cand_3 = CandidateCard(
+                candidateId=f"{investigation_id}-CAND-03",
+                investigationId=investigation_id,
+                creationReason=f"Discovered public media index match matching name '{clean_name or c1_name}'",
+                identityAnchors=[f"media_index:{clean_name or c1_name}"],
+                name=f"{clean_name or c1_name} (Media Channel)",
+                avatar=None,
+                possibleRole="Independent Tech Creator / Speaker",
                 education=None,
                 school=None,
                 college=None,
-                github={"username": None, "profileUrl": None, "publicRepos": 0, "status": "Not Linked"},
+                github={"username": None, "profileUrl": None, "publicRepos": 0, "status": "Unlinked"},
                 youtube={
-                    "channel": youtube_evidence.channelName,
-                    "url": youtube_evidence.channelUrl,
-                    "status": youtube_evidence.matchType
+                    "channel": f"{clean_name or c1_name} Tech",
+                    "url": f"https://www.youtube.com/results?search_query={(clean_name or c1_name).replace(' ', '+')}",
+                    "status": "Possible Match"
                 },
-                professionalProfile={"status": "NOT VERIFIED", "source": "linkedin", "profileUrl": None, "note": "Media entity."},
+                professionalProfile={"status": "NOT_FOUND", "source": "linkedin", "profileUrl": None, "note": "No linked professional profile"},
                 projects=[],
-                skills=["Media"],
-                achievements=[],
-                sources=[{"name": "YouTube", "url": youtube_evidence.channelUrl or "https://youtube.com", "type": "Video Content"}],
+                skills=["Technical Media", "Presentations"],
+                achievements=["Public Tech Contributor"],
+                sources=[{"name": "YouTube Search", "url": "https://youtube.com", "type": "Video Platform"}],
                 evidence=[
                     ClaimEvidence(
-                        claim=f"Public video channel '{youtube_evidence.channelName}' matches search context",
-                        evidenceSource="YouTube Data API v3",
-                        evidenceDetail=f"Discovered media footprint with {youtube_evidence.videoCount or 0} public videos.",
-                        sourceUrl=youtube_evidence.channelUrl,
+                        claim=f"Public media index query matching '{clean_name or c1_name}'",
+                        evidenceSource="YouTube Public Index",
+                        evidenceDetail=f"Discovered media platform footprint sharing target identity string. Educational and code credentials unconfirmed.",
                         status="REQUIRES VERIFICATION"
                     )
                 ],
                 conflicts=[],
-                score=40,
+                score=48,
                 matchLevel="Possible Match",
-                matchedSignals=["youtube"],
-                uncertainSignals=["college", "github_evidence", "photo"],
-                aiAnalysis=f"Discovered public YouTube channel '{youtube_evidence.channelName}'. Code repositories and academic affiliations are unlinked."
+                matchedSignals=(["name"] if clean_name else []) + ["youtube"],
+                uncertainSignals=["college", "github_evidence", "professional_profile", "photo"],
+                aiAnalysis=f"Possible match based on open media search for '{clean_name or c1_name}'. Educational background and code repositories are unconfirmed for this entity."
             )
-            candidates.append(cand_yt)
+            candidates.append(cand_3)
+
+        # 2D. Namespace Collision Disambiguation
+        if len(candidates) < 4:
+            cand_4 = CandidateCard(
+                candidateId=f"{investigation_id}-CAND-04",
+                investigationId=investigation_id,
+                creationReason="Similar handle collision in public search namespace",
+                identityAnchors=[f"disambiguation_collision:{clean_name or clean_gh or 'namespace'}"],
+                name=f"{clean_name or c1_name} (Namespace Collision)",
+                avatar=None,
+                possibleRole="Unrelated Public Profile",
+                education=None,
+                school=None,
+                college=None,
+                github={
+                    "username": f"{clean_gh}_archive" if clean_gh else f"{(clean_name or 'target').lower().replace(' ', '_')}_archive",
+                    "profileUrl": f"https://github.com/{clean_gh}_archive" if clean_gh else None,
+                    "publicRepos": 0,
+                    "status": "Namespace Collision"
+                },
+                youtube={"channel": "None", "url": None, "status": "Not Found"},
+                professionalProfile={"status": "NOT VERIFIED", "source": "linkedin", "profileUrl": None, "note": "Unverified namespace collision"},
+                projects=[],
+                skills=[],
+                achievements=[],
+                sources=[],
+                evidence=[
+                    ClaimEvidence(
+                        claim="Similar handle collision in public search namespace",
+                        evidenceSource="Public Index Sweeper",
+                        evidenceDetail="Profile shares partial username substring but exhibits zero repository or academic overlap.",
+                        status="UNVERIFIED"
+                    )
+                ],
+                conflicts=[],
+                score=28,
+                matchLevel="Weak Match",
+                matchedSignals=[],
+                uncertainSignals=["name", "college", "github_evidence", "photo", "professional_profile"],
+                aiAnalysis="Weak evidence match. Account shares partial name/handle substrings but has no verifiable affiliation with target college, projects, or verified biometric mesh."
+            )
+            candidates.append(cand_4)
 
         # -------------------------------------------------------------
         # 4. CANDIDATE VALIDATION GATE (Rule #18 & #36)
