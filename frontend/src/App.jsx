@@ -35,6 +35,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
+        setCurrentView((prev) => (prev === 'login' ? 'dashboard' : prev));
       } else {
         setCurrentUser(null);
       }

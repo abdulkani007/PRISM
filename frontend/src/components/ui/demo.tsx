@@ -47,9 +47,7 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      console.log("Firebase Google Auth Success:", user);
       if (onAuthSuccess) onAuthSuccess(user);
-      if (onBackToHome) onBackToHome();
     } catch (err: any) {
       console.error("Google Sign In Error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
@@ -75,9 +73,7 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Firebase Email Auth Success:", userCredential.user);
       if (onAuthSuccess) onAuthSuccess(userCredential.user);
-      if (onBackToHome) onBackToHome();
     } catch (err: any) {
       console.error("Email Sign In Error:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
@@ -105,7 +101,6 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       alert(`Account created for ${userCredential.user.email}!`);
       if (onAuthSuccess) onAuthSuccess(userCredential.user);
-      if (onBackToHome) onBackToHome();
     } catch (err: any) {
       setError(err.message || "Failed to create account.");
     } finally {
