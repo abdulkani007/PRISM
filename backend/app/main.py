@@ -34,6 +34,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import traceback
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_exception_handler(request, exc: ResponseValidationError):
+    tb = traceback.format_exc()
+    logger.error(f"ResponseValidationError on {request.url}:\n{tb}\nErrors: {exc.errors()}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Response serialization error", "errors": str(exc.errors()), "traceback": tb},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc: Exception):
+    tb = traceback.format_exc()
+    logger.error(f"Global exception on {request.url}:\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": tb, "type": type(exc).__name__},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
+
 # Resilient in-memory cache synchronized with MongoDB
 investigations_db: Dict[str, InvestigationState] = {}
 candidates_db: Dict[str, CandidateCard] = {}

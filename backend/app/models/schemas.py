@@ -79,20 +79,21 @@ class WebSearchResult(BaseModel):
     matchedQuery: str
 
 class ClaimEvidence(BaseModel):
-    claim: str
-    evidenceSource: str
-    evidenceDetail: str
+    claim: str = ""
+    evidenceSource: str = ""
+    evidenceDetail: Optional[str] = ""
     sourceUrl: Optional[str] = None
     status: str = "CORROBORATED"  # "CORROBORATED" | "UNVERIFIED" | "REQUIRES VERIFICATION"
+    confidence: Optional[float] = None
 
 class ConflictItem(BaseModel):
-    title: str
+    title: str = ""
     severity: str = "MEDIUM"
-    sourceA: str
-    claimA: str
-    sourceB: str
-    claimB: str
-    detail: str
+    sourceA: Optional[str] = ""
+    claimA: Optional[str] = ""
+    sourceB: Optional[str] = ""
+    claimB: Optional[str] = ""
+    detail: Optional[str] = ""
 
 class CandidateCard(BaseModel):
     candidateId: str
