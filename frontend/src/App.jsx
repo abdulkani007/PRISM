@@ -323,7 +323,13 @@ export default function App() {
             triggerOnce={false}
             triggerOnHover={true}
             scrambleCharset="!@#$%0123456789ABCDEF"
-            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08]"
+            style={{
+              fontSize: 'clamp(2.5rem, 5.5vw, 4.75rem)',
+              lineHeight: 1.08,
+              fontWeight: 800,
+              letterSpacing: '-0.03em'
+            }}
+            className="font-extrabold tracking-tight text-white leading-[1.08]"
           />
         </div>
 

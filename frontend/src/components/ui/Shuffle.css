@@ -3,10 +3,6 @@
   white-space: normal;
   word-wrap: break-word;
   will-change: transform;
-  line-height: 1.1;
-  font-size: inherit;
-  font-family: inherit;
-  text-transform: inherit;
   visibility: hidden;
 }
 
@@ -27,7 +23,6 @@
 }
 
 .shuffle-char {
-  line-height: inherit;
   display: inline-block;
   text-align: center;
 }
