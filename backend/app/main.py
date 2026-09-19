@@ -68,6 +68,17 @@ async def global_exception_handler(request, exc: Exception):
         }
     )
 
+def strip_object_id(data: Any) -> Any:
+    """Recursively strip MongoDB ObjectId and _id fields to guarantee Pydantic serialization success."""
+    if isinstance(data, dict):
+        return {k: strip_object_id(v) for k, v in data.items() if k != "_id"}
+    elif isinstance(data, list):
+        return [strip_object_id(v) for v in data]
+    elif hasattr(data, "__class__") and data.__class__.__name__ == "ObjectId":
+        return str(data)
+    return data
+
+
 # Resilient in-memory cache synchronized with MongoDB (strictly investigation scoped)
 investigations_db: Dict[str, InvestigationState] = {}
 candidates_db: Dict[str, CandidateCard] = {}
@@ -96,7 +107,7 @@ async def execute_full_investigation(inv_id: str):
     if not inv:
         db_doc = await mongo_service.get_investigation(inv_id)
         if db_doc:
-            inv = InvestigationState(**db_doc)
+            inv = InvestigationState(**strip_object_id(db_doc))
             investigations_db[inv_id] = inv
         else:
             logger.error(f"Investigation {inv_id} not found in database or memory.")
@@ -138,7 +149,7 @@ async def execute_full_investigation(inv_id: str):
         # Map and persist candidate cards (strictly investigation-scoped)
         candidates_list: List[CandidateCard] = []
         for c in final_state.get("candidates", []):
-            card = CandidateCard(**c)
+            card = CandidateCard(**strip_object_id(c))
             candidates_list.append(card)
             card_dict = card.model_dump()
             card_dict["investigation_id"] = inv_id
@@ -150,33 +161,33 @@ async def execute_full_investigation(inv_id: str):
         inv.candidates = candidates_list
         inv.status = "COMPLETED"
         inv.currentStep = "INVESTIGATION COMPLETE"
-        inv.queries = final_state.get("queries", [])
-        inv.evidenceOverview = final_state.get("evidence_overview", {})
-        inv.imageAnalysis = final_state.get("image_analysis")
+        inv.queries = strip_object_id(final_state.get("queries", []))
+        inv.evidenceOverview = strip_object_id(final_state.get("evidence_overview", {}))
+        inv.imageAnalysis = strip_object_id(final_state.get("image_analysis"))
         inv.aiSummary = final_state.get("ai_summary", "")
         inv.clarificationQuestions = final_state.get("clarification_questions", [])
-        inv.timeline = final_state.get("timeline", [])
-        inv.graph = final_state.get("graph", {})
+        inv.timeline = strip_object_id(final_state.get("timeline", []))
+        inv.graph = strip_object_id(final_state.get("graph", {}))
 
         # Persist discrete investigation collections
         if final_state.get("entities"):
-            await mongo_service.save_entities(inv_id, final_state.get("entities", []))
+            await mongo_service.save_entities(inv_id, strip_object_id(final_state.get("entities", [])))
         if final_state.get("relationships"):
-            await mongo_service.save_relationships(inv_id, final_state.get("relationships", []))
+            await mongo_service.save_relationships(inv_id, strip_object_id(final_state.get("relationships", [])))
         if final_state.get("evidence"):
-            await mongo_service.save_evidence(inv_id, final_state.get("evidence", []))
+            await mongo_service.save_evidence(inv_id, strip_object_id(final_state.get("evidence", [])))
         if final_state.get("queries"):
-            await mongo_service.save_queries(inv_id, final_state.get("queries", []))
+            await mongo_service.save_queries(inv_id, strip_object_id(final_state.get("queries", [])))
 
         investigations_db[inv_id] = inv
-        await mongo_service.save_investigation(inv.model_dump())
+        await mongo_service.save_investigation(strip_object_id(inv.model_dump()))
         logger.info(f"Investigation {inv_id} completed successfully with {len(candidates_list)} candidates.")
     except Exception as e:
         logger.error(f"LangGraph investigation error for {inv_id}: {e}", exc_info=True)
         inv.status = "ERROR"
         inv.currentStep = f"FAILED: {str(e)}"
         investigations_db[inv_id] = inv
-        await mongo_service.save_investigation(inv.model_dump())
+        await mongo_service.save_investigation(strip_object_id(inv.model_dump()))
 
 
 # -------------------------------------------------------------

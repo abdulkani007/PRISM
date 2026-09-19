@@ -121,16 +121,17 @@ class MongoDBService:
             return False
         
         data = dict(inv_data)
+        data.pop("_id", None)
         data["investigation_id"] = inv_id
         data["investigationId"] = inv_id
         data["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-        self._memory_investigations[inv_id] = data
+        self._memory_investigations[inv_id] = dict(data)
         
         if self.is_connected and self.db is not None:
             try:
                 await self.db.investigations.update_one(
                     {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
-                    {"$set": data},
+                    {"$set": dict(data)},
                     upsert=True
                 )
                 return True
@@ -161,13 +162,14 @@ class MongoDBService:
             return False
         
         data = dict(cand_data)
+        data.pop("_id", None)
         data["investigation_id"] = inv_id
         data["investigationId"] = inv_id
         data["updatedAt"] = datetime.utcnow().isoformat() + "Z"
         
         if inv_id not in self._memory_candidates:
             self._memory_candidates[inv_id] = {}
-        self._memory_candidates[inv_id][cand_id] = data
+        self._memory_candidates[inv_id][cand_id] = dict(data)
         
         if self.is_connected and self.db is not None:
             try:
@@ -176,7 +178,7 @@ class MongoDBService:
                         "$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}],
                         "candidateId": cand_id
                     },
-                    {"$set": data},
+                    {"$set": dict(data)},
                     upsert=True
                 )
                 return True
@@ -223,14 +225,19 @@ class MongoDBService:
     # PROFILES CRUD (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_profiles(self, inv_id: str, profiles: List[Dict[str, Any]]) -> bool:
-        self._memory_profiles[inv_id] = profiles
-        if self.is_connected and self.db is not None and profiles:
+        clean_profiles = []
+        for p in profiles:
+            item = dict(p)
+            item.pop("_id", None)
+            item["investigation_id"] = inv_id
+            item["investigationId"] = inv_id
+            clean_profiles.append(item)
+        self._memory_profiles[inv_id] = clean_profiles
+        if self.is_connected and self.db is not None and clean_profiles:
             try:
                 await self.db.profiles.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
-                for p in profiles:
-                    p["investigation_id"] = inv_id
-                    p["investigationId"] = inv_id
-                await self.db.profiles.insert_many(profiles)
+                db_docs = [dict(p) for p in clean_profiles]
+                await self.db.profiles.insert_many(db_docs)
                 return True
             except Exception as e:
                 logger.error(f"Error saving profiles to MongoDB: {mask_mongodb_uri(str(e))}")
@@ -254,14 +261,19 @@ class MongoDBService:
     # ENTITIES & RELATIONSHIPS (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_entities(self, inv_id: str, entities: List[Dict[str, Any]]) -> bool:
-        self._memory_entities[inv_id] = entities
-        if self.is_connected and self.db is not None and entities:
+        clean_entities = []
+        for e in entities:
+            item = dict(e)
+            item.pop("_id", None)
+            item["investigation_id"] = inv_id
+            item["investigationId"] = inv_id
+            clean_entities.append(item)
+        self._memory_entities[inv_id] = clean_entities
+        if self.is_connected and self.db is not None and clean_entities:
             try:
                 await self.db.entities.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
-                for e in entities:
-                    e["investigation_id"] = inv_id
-                    e["investigationId"] = inv_id
-                await self.db.entities.insert_many(entities)
+                db_docs = [dict(e) for e in clean_entities]
+                await self.db.entities.insert_many(db_docs)
                 return True
             except Exception as e:
                 logger.error(f"Error saving entities to MongoDB: {mask_mongodb_uri(str(e))}")
@@ -282,14 +294,19 @@ class MongoDBService:
         return self._memory_entities.get(inv_id, [])
 
     async def save_relationships(self, inv_id: str, relationships: List[Dict[str, Any]]) -> bool:
-        self._memory_relationships[inv_id] = relationships
-        if self.is_connected and self.db is not None and relationships:
+        clean_relationships = []
+        for r in relationships:
+            item = dict(r)
+            item.pop("_id", None)
+            item["investigation_id"] = inv_id
+            item["investigationId"] = inv_id
+            clean_relationships.append(item)
+        self._memory_relationships[inv_id] = clean_relationships
+        if self.is_connected and self.db is not None and clean_relationships:
             try:
                 await self.db.relationships.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
-                for r in relationships:
-                    r["investigation_id"] = inv_id
-                    r["investigationId"] = inv_id
-                await self.db.relationships.insert_many(relationships)
+                db_docs = [dict(r) for r in clean_relationships]
+                await self.db.relationships.insert_many(db_docs)
                 return True
             except Exception as e:
                 logger.error(f"Error saving relationships to MongoDB: {mask_mongodb_uri(str(e))}")
@@ -313,14 +330,19 @@ class MongoDBService:
     # EVIDENCE & QUERIES (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_evidence(self, inv_id: str, evidence: List[Dict[str, Any]]) -> bool:
-        self._memory_evidence[inv_id] = evidence
-        if self.is_connected and self.db is not None and evidence:
+        clean_evidence = []
+        for ev in evidence:
+            item = dict(ev)
+            item.pop("_id", None)
+            item["investigation_id"] = inv_id
+            item["investigationId"] = inv_id
+            clean_evidence.append(item)
+        self._memory_evidence[inv_id] = clean_evidence
+        if self.is_connected and self.db is not None and clean_evidence:
             try:
                 await self.db.evidence.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
-                for ev in evidence:
-                    ev["investigation_id"] = inv_id
-                    ev["investigationId"] = inv_id
-                await self.db.evidence.insert_many(evidence)
+                db_docs = [dict(ev) for ev in clean_evidence]
+                await self.db.evidence.insert_many(db_docs)
                 return True
             except Exception as e:
                 logger.error(f"Error saving evidence to MongoDB: {mask_mongodb_uri(str(e))}")
@@ -341,14 +363,19 @@ class MongoDBService:
         return self._memory_evidence.get(inv_id, [])
 
     async def save_queries(self, inv_id: str, queries: List[Dict[str, Any]]) -> bool:
-        self._memory_queries[inv_id] = queries
-        if self.is_connected and self.db is not None and queries:
+        clean_queries = []
+        for q in queries:
+            item = dict(q)
+            item.pop("_id", None)
+            item["investigation_id"] = inv_id
+            item["investigationId"] = inv_id
+            clean_queries.append(item)
+        self._memory_queries[inv_id] = clean_queries
+        if self.is_connected and self.db is not None and clean_queries:
             try:
                 await self.db.queries.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
-                for q in queries:
-                    q["investigation_id"] = inv_id
-                    q["investigationId"] = inv_id
-                await self.db.queries.insert_many(queries)
+                db_docs = [dict(q) for q in clean_queries]
+                await self.db.queries.insert_many(db_docs)
                 return True
             except Exception as e:
                 logger.error(f"Error saving queries to MongoDB: {mask_mongodb_uri(str(e))}")
