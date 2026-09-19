@@ -1,10 +1,12 @@
 """
-PRISM MongoDB Asynchronous Persistence Layer
-Provides persistent storage for investigations, candidates, profiles, entities, evidence, queries, and relationships.
+PRISM MongoDB Atlas Asynchronous Persistence Layer
+Provides high-assurance persistent storage for investigations, candidates, profiles, entities, evidence, queries, and relationships.
 Includes automatic in-memory fallback if MongoDB connection fails.
+Strictly adheres to investigation isolation invariants: NO cross-investigation data leakage.
 """
 
 import logging
+import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -12,13 +14,21 @@ from app.core.config import settings
 
 logger = logging.getLogger("prism.db")
 
+
+def mask_mongodb_uri(uri: str) -> str:
+    """Mask credentials in MongoDB URI to prevent credential leakage in logs and traces."""
+    if not uri:
+        return "UNSET"
+    return re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', uri)
+
+
 class MongoDBService:
     def __init__(self):
         self.client: Optional[AsyncIOMotorClient] = None
         self.db = None
         self.is_connected = False
         
-        # In-memory fallback stores (strictly scoped by investigationId)
+        # In-memory fallback stores (strictly scoped by investigation_id)
         self._memory_investigations: Dict[str, Dict[str, Any]] = {}
         self._memory_candidates: Dict[str, Dict[str, Dict[str, Any]]] = {}  # inv_id -> {cand_id: cand_dict}
         self._memory_profiles: Dict[str, List[Dict[str, Any]]] = {}
@@ -29,87 +39,129 @@ class MongoDBService:
         self._memory_cache: Dict[str, Any] = {}
 
     async def connect(self):
-        """Establish asynchronous connection to MongoDB and ensure indexes."""
+        """Establish asynchronous connection to MongoDB Atlas and ensure schema indexes."""
+        if not settings.MONGODB_URI:
+            self.is_connected = False
+            logger.info("MONGODB_URI is not set. Operating in resilient IN-MEMORY fallback mode.")
+            return
+
+        masked_uri = mask_mongodb_uri(settings.MONGODB_URI)
         try:
-            logger.info(f"Connecting to MongoDB at {settings.MONGODB_URI}...")
+            logger.info(f"Connecting to MongoDB Atlas (database: '{settings.MONGODB_DB_NAME}', endpoint: {masked_uri})...")
             self.client = AsyncIOMotorClient(
                 settings.MONGODB_URI,
-                serverSelectionTimeoutMS=2000,
-                connectTimeoutMS=2000
+                serverSelectionTimeoutMS=4000,
+                connectTimeoutMS=4000,
+                socketTimeoutMS=5000,
+                retryWrites=True
             )
-            # Verify connectivity with a quick ping
+            # Verify connectivity with an admin ping
             await self.client.admin.command('ping')
             self.db = self.client[settings.MONGODB_DB_NAME]
             self.is_connected = True
-            logger.info(f"Successfully connected to MongoDB database: '{settings.MONGODB_DB_NAME}'")
+            logger.info(f"MongoDB connection: SUCCESS. Database: '{settings.MONGODB_DB_NAME}'")
             
             # Create required indexes
             await self._create_indexes()
         except Exception as e:
             self.is_connected = False
-            logger.warning(f"MongoDB connection failed ({e}). Operating in resilient IN-MEMORY fallback mode.")
+            masked_error = mask_mongodb_uri(str(e))
+            logger.warning(f"MongoDB Atlas unavailable ({masked_error}). Operating in resilient IN-MEMORY fallback mode.")
+
+    async def close(self):
+        """Gracefully close the MongoDB Atlas connection."""
+        if self.client:
+            self.client.close()
+            self.is_connected = False
+            logger.info("MongoDB Atlas connection closed.")
 
     async def _create_indexes(self):
-        """Create indexes on frequently queried fields."""
+        """Create indexes on frequently queried fields for investigation isolation & query speed."""
         if not self.is_connected or self.db is None:
             return
         try:
-            await self.db.investigations.create_index("investigationId", unique=True)
-            await self.db.candidates.create_index("candidateId", unique=True)
+            # Investigations
+            await self.db.investigations.create_index("investigation_id", unique=True, sparse=True)
+            await self.db.investigations.create_index("investigationId", unique=True, sparse=True)
+            await self.db.investigations.create_index("createdAt")
+
+            # Candidates (Scoped by investigation)
+            await self.db.candidates.create_index([("investigation_id", 1), ("candidateId", 1)], unique=True, sparse=True)
+            await self.db.candidates.create_index([("investigationId", 1), ("candidateId", 1)], unique=True, sparse=True)
+            await self.db.candidates.create_index("investigation_id")
             await self.db.candidates.create_index("investigationId")
+
+            # Profiles
+            await self.db.profiles.create_index("investigation_id")
+            await self.db.profiles.create_index("investigationId")
+
+            # Entities & Evidence
+            await self.db.entities.create_index("investigation_id")
             await self.db.entities.create_index("investigationId")
+            await self.db.evidence.create_index("investigation_id")
             await self.db.evidence.create_index("investigationId")
+            await self.db.evidence.create_index("evidenceId")
+
+            # Relationships & Queries
+            await self.db.relationships.create_index("investigation_id")
             await self.db.relationships.create_index("investigationId")
+            await self.db.queries.create_index("investigation_id")
             await self.db.queries.create_index("investigationId")
             await self.db.queries.create_index("queryHash")
-            logger.info("MongoDB indexes verified.")
+            logger.info("MongoDB Atlas schema indexes verified.")
         except Exception as e:
-            logger.warning(f"Failed to create MongoDB indexes: {e}")
+            logger.warning(f"Failed to create MongoDB indexes: {mask_mongodb_uri(str(e))}")
 
     # -------------------------------------------------------------
-    # INVESTIGATION CRUD
+    # INVESTIGATION CRUD (Investigation Scoped)
     # -------------------------------------------------------------
     async def save_investigation(self, inv_data: Dict[str, Any]) -> bool:
-        inv_id = inv_data.get("investigationId")
+        inv_id = inv_data.get("investigation_id") or inv_data.get("investigationId")
         if not inv_id:
             return False
         
         data = dict(inv_data)
+        data["investigation_id"] = inv_id
+        data["investigationId"] = inv_id
         data["updatedAt"] = datetime.utcnow().isoformat() + "Z"
         self._memory_investigations[inv_id] = data
         
         if self.is_connected and self.db is not None:
             try:
                 await self.db.investigations.update_one(
-                    {"investigationId": inv_id},
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
                     {"$set": data},
                     upsert=True
                 )
                 return True
             except Exception as e:
-                logger.error(f"Error saving investigation to MongoDB: {e}")
+                logger.error(f"Error saving investigation to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_investigation(self, inv_id: str) -> Optional[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                doc = await self.db.investigations.find_one({"investigationId": inv_id}, {"_id": 0})
+                doc = await self.db.investigations.find_one(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 if doc:
                     return doc
             except Exception as e:
-                logger.error(f"Error fetching investigation from MongoDB: {e}")
+                logger.error(f"Error fetching investigation from MongoDB: {mask_mongodb_uri(str(e))}")
         return self._memory_investigations.get(inv_id)
 
     # -------------------------------------------------------------
-    # CANDIDATE CRUD (Scoped strictly by investigationId)
+    # CANDIDATE CRUD (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_candidate(self, cand_data: Dict[str, Any]) -> bool:
         cand_id = cand_data.get("candidateId")
-        inv_id = cand_data.get("investigationId") or "UNKNOWN_INV"
+        inv_id = cand_data.get("investigation_id") or cand_data.get("investigationId") or "UNKNOWN_INV"
         if not cand_id:
             return False
         
         data = dict(cand_data)
+        data["investigation_id"] = inv_id
         data["investigationId"] = inv_id
         data["updatedAt"] = datetime.utcnow().isoformat() + "Z"
         
@@ -120,13 +172,16 @@ class MongoDBService:
         if self.is_connected and self.db is not None:
             try:
                 await self.db.candidates.update_one(
-                    {"investigationId": inv_id, "candidateId": cand_id},
+                    {
+                        "$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}],
+                        "candidateId": cand_id
+                    },
                     {"$set": data},
                     upsert=True
                 )
                 return True
             except Exception as e:
-                logger.error(f"Error saving candidate to MongoDB: {e}")
+                logger.error(f"Error saving candidate to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_candidate(self, cand_id: str, inv_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -134,12 +189,12 @@ class MongoDBService:
             try:
                 query = {"candidateId": cand_id}
                 if inv_id:
-                    query["investigationId"] = inv_id
+                    query["$or"] = [{"investigation_id": inv_id}, {"investigationId": inv_id}]
                 doc = await self.db.candidates.find_one(query, {"_id": 0})
                 if doc:
                     return doc
             except Exception as e:
-                logger.error(f"Error fetching candidate from MongoDB: {e}")
+                logger.error(f"Error fetching candidate from MongoDB: {mask_mongodb_uri(str(e))}")
         
         if inv_id and inv_id in self._memory_candidates:
             return self._memory_candidates[inv_id].get(cand_id)
@@ -150,117 +205,167 @@ class MongoDBService:
         return None
 
     async def get_investigation_candidates(self, inv_id: str) -> List[Dict[str, Any]]:
+        """NEVER query all candidates. Always strictly scoped to inv_id."""
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.candidates.find({"investigationId": inv_id}, {"_id": 0})
+                cursor = self.db.candidates.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 results = await cursor.to_list(length=100)
                 if results:
                     return results
             except Exception as e:
-                logger.error(f"Error fetching candidates for investigation from MongoDB: {e}")
+                logger.error(f"Error fetching candidates for investigation from MongoDB: {mask_mongodb_uri(str(e))}")
         return list(self._memory_candidates.get(inv_id, {}).values())
 
     # -------------------------------------------------------------
-    # ENTITIES & RELATIONSHIPS
+    # PROFILES CRUD (Scoped strictly by investigation_id)
+    # -------------------------------------------------------------
+    async def save_profiles(self, inv_id: str, profiles: List[Dict[str, Any]]) -> bool:
+        self._memory_profiles[inv_id] = profiles
+        if self.is_connected and self.db is not None and profiles:
+            try:
+                await self.db.profiles.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
+                for p in profiles:
+                    p["investigation_id"] = inv_id
+                    p["investigationId"] = inv_id
+                await self.db.profiles.insert_many(profiles)
+                return True
+            except Exception as e:
+                logger.error(f"Error saving profiles to MongoDB: {mask_mongodb_uri(str(e))}")
+        return True
+
+    async def get_profiles(self, inv_id: str) -> List[Dict[str, Any]]:
+        if self.is_connected and self.db is not None:
+            try:
+                cursor = self.db.profiles.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
+                results = await cursor.to_list(length=100)
+                if results:
+                    return results
+            except Exception as e:
+                logger.error(f"Error fetching profiles from MongoDB: {mask_mongodb_uri(str(e))}")
+        return self._memory_profiles.get(inv_id, [])
+
+    # -------------------------------------------------------------
+    # ENTITIES & RELATIONSHIPS (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_entities(self, inv_id: str, entities: List[Dict[str, Any]]) -> bool:
         self._memory_entities[inv_id] = entities
         if self.is_connected and self.db is not None and entities:
             try:
-                # Remove existing entities for this investigation to avoid duplication
-                await self.db.entities.delete_many({"investigationId": inv_id})
+                await self.db.entities.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
                 for e in entities:
+                    e["investigation_id"] = inv_id
                     e["investigationId"] = inv_id
                 await self.db.entities.insert_many(entities)
                 return True
             except Exception as e:
-                logger.error(f"Error saving entities to MongoDB: {e}")
+                logger.error(f"Error saving entities to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_entities(self, inv_id: str) -> List[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.entities.find({"investigationId": inv_id}, {"_id": 0})
+                cursor = self.db.entities.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 results = await cursor.to_list(length=200)
                 if results:
                     return results
             except Exception as e:
-                logger.error(f"Error fetching entities from MongoDB: {e}")
+                logger.error(f"Error fetching entities from MongoDB: {mask_mongodb_uri(str(e))}")
         return self._memory_entities.get(inv_id, [])
 
     async def save_relationships(self, inv_id: str, relationships: List[Dict[str, Any]]) -> bool:
         self._memory_relationships[inv_id] = relationships
         if self.is_connected and self.db is not None and relationships:
             try:
-                await self.db.relationships.delete_many({"investigationId": inv_id})
+                await self.db.relationships.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
                 for r in relationships:
+                    r["investigation_id"] = inv_id
                     r["investigationId"] = inv_id
                 await self.db.relationships.insert_many(relationships)
                 return True
             except Exception as e:
-                logger.error(f"Error saving relationships to MongoDB: {e}")
+                logger.error(f"Error saving relationships to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_relationships(self, inv_id: str) -> List[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.relationships.find({"investigationId": inv_id}, {"_id": 0})
+                cursor = self.db.relationships.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 results = await cursor.to_list(length=300)
                 if results:
                     return results
             except Exception as e:
-                logger.error(f"Error fetching relationships from MongoDB: {e}")
+                logger.error(f"Error fetching relationships from MongoDB: {mask_mongodb_uri(str(e))}")
         return self._memory_relationships.get(inv_id, [])
 
     # -------------------------------------------------------------
-    # EVIDENCE & QUERIES
+    # EVIDENCE & QUERIES (Scoped strictly by investigation_id)
     # -------------------------------------------------------------
     async def save_evidence(self, inv_id: str, evidence: List[Dict[str, Any]]) -> bool:
         self._memory_evidence[inv_id] = evidence
         if self.is_connected and self.db is not None and evidence:
             try:
-                await self.db.evidence.delete_many({"investigationId": inv_id})
+                await self.db.evidence.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
                 for ev in evidence:
+                    ev["investigation_id"] = inv_id
                     ev["investigationId"] = inv_id
                 await self.db.evidence.insert_many(evidence)
                 return True
             except Exception as e:
-                logger.error(f"Error saving evidence to MongoDB: {e}")
+                logger.error(f"Error saving evidence to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_evidence(self, inv_id: str) -> List[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.evidence.find({"investigationId": inv_id}, {"_id": 0})
+                cursor = self.db.evidence.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 results = await cursor.to_list(length=500)
                 if results:
                     return results
             except Exception as e:
-                logger.error(f"Error fetching evidence from MongoDB: {e}")
+                logger.error(f"Error fetching evidence from MongoDB: {mask_mongodb_uri(str(e))}")
         return self._memory_evidence.get(inv_id, [])
 
     async def save_queries(self, inv_id: str, queries: List[Dict[str, Any]]) -> bool:
         self._memory_queries[inv_id] = queries
         if self.is_connected and self.db is not None and queries:
             try:
-                await self.db.queries.delete_many({"investigationId": inv_id})
+                await self.db.queries.delete_many({"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]})
                 for q in queries:
+                    q["investigation_id"] = inv_id
                     q["investigationId"] = inv_id
                 await self.db.queries.insert_many(queries)
                 return True
             except Exception as e:
-                logger.error(f"Error saving queries to MongoDB: {e}")
+                logger.error(f"Error saving queries to MongoDB: {mask_mongodb_uri(str(e))}")
         return True
 
     async def get_queries(self, inv_id: str) -> List[Dict[str, Any]]:
         if self.is_connected and self.db is not None:
             try:
-                cursor = self.db.queries.find({"investigationId": inv_id}, {"_id": 0})
+                cursor = self.db.queries.find(
+                    {"$or": [{"investigation_id": inv_id}, {"investigationId": inv_id}]},
+                    {"_id": 0}
+                )
                 results = await cursor.to_list(length=100)
                 if results:
                     return results
             except Exception as e:
-                logger.error(f"Error fetching queries from MongoDB: {e}")
+                logger.error(f"Error fetching queries from MongoDB: {mask_mongodb_uri(str(e))}")
         return self._memory_queries.get(inv_id, [])
 
     # -------------------------------------------------------------
@@ -271,6 +376,7 @@ class MongoDBService:
         entities = await self.get_entities(inv_id)
         relationships = await self.get_relationships(inv_id)
         return {
+            "investigation_id": inv_id,
             "investigationId": inv_id,
             "nodes": entities,
             "edges": relationships
@@ -308,5 +414,6 @@ class MongoDBService:
                 )
             except Exception:
                 pass
+
 
 mongo_service = MongoDBService()

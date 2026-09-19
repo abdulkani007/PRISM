@@ -68,16 +68,23 @@ async def global_exception_handler(request, exc: Exception):
         }
     )
 
-# Resilient in-memory cache synchronized with MongoDB
+# Resilient in-memory cache synchronized with MongoDB (strictly investigation scoped)
 investigations_db: Dict[str, InvestigationState] = {}
 candidates_db: Dict[str, CandidateCard] = {}
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Connect to MongoDB on startup and initialize schema indexes."""
-    logger.info("Initializing PRISM backend and database connections...")
+    """Connect to MongoDB Atlas on startup and initialize schema indexes."""
+    logger.info("Initializing PRISM backend and MongoDB Atlas connections...")
     await mongo_service.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully close MongoDB Atlas connections on shutdown."""
+    logger.info("Closing PRISM backend and database connections...")
+    await mongo_service.close()
 
 
 # -------------------------------------------------------------
@@ -128,11 +135,16 @@ async def execute_full_investigation(inv_id: str):
         # Run autonomous LangGraph agent loop
         final_state = await investigation_graph_app.ainvoke(init_state)
 
-        # Map candidate cards
+        # Map and persist candidate cards (strictly investigation-scoped)
         candidates_list: List[CandidateCard] = []
         for c in final_state.get("candidates", []):
             card = CandidateCard(**c)
             candidates_list.append(card)
+            card_dict = card.model_dump()
+            card_dict["investigation_id"] = inv_id
+            card_dict["investigationId"] = inv_id
+            await mongo_service.save_candidate(card_dict)
+            candidates_db[f"{inv_id}:{card.candidateId}"] = card
             candidates_db[card.candidateId] = card
 
         inv.candidates = candidates_list
@@ -145,6 +157,16 @@ async def execute_full_investigation(inv_id: str):
         inv.clarificationQuestions = final_state.get("clarification_questions", [])
         inv.timeline = final_state.get("timeline", [])
         inv.graph = final_state.get("graph", {})
+
+        # Persist discrete investigation collections
+        if final_state.get("entities"):
+            await mongo_service.save_entities(inv_id, final_state.get("entities", []))
+        if final_state.get("relationships"):
+            await mongo_service.save_relationships(inv_id, final_state.get("relationships", []))
+        if final_state.get("evidence"):
+            await mongo_service.save_evidence(inv_id, final_state.get("evidence", []))
+        if final_state.get("queries"):
+            await mongo_service.save_queries(inv_id, final_state.get("queries", []))
 
         investigations_db[inv_id] = inv
         await mongo_service.save_investigation(inv.model_dump())
@@ -167,7 +189,11 @@ def read_root():
         "version": settings.VERSION,
         "status": "ONLINE",
         "orchestration": "LANGGRAPH_AUTONOMOUS_AGENT",
-        "database": "MONGODB_PERSISTENT" if mongo_service.is_connected else "IN_MEMORY_FALLBACK",
+        "database": {
+            "status": "connected" if mongo_service.is_connected else "unavailable",
+            "mode": "MONGODB_ATLAS" if mongo_service.is_connected else "IN_MEMORY_FALLBACK",
+            "name": settings.MONGODB_DB_NAME
+        },
         "vision_pipeline": "OPENCV_YUNET_SFACE_ONNX",
         "apis": {
             "github": "CONFIGURED" if settings.GITHUB_TOKEN else "UNAUTHENTICATED",
@@ -177,11 +203,16 @@ def read_root():
     }
 
 @app.get("/api/v1/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "HEALTHY",
         "orchestration": "LANGGRAPH_STATEGRAPH_AGENT",
-        "database": "MONGODB_PERSISTENT" if mongo_service.is_connected else "IN_MEMORY_FALLBACK",
+        "database": {
+            "status": "connected" if mongo_service.is_connected else "unavailable",
+            "mode": "MONGODB_ATLAS" if mongo_service.is_connected else "IN_MEMORY_FALLBACK",
+            "name": settings.MONGODB_DB_NAME
+        },
         "vision_pipeline": "OPENCV_YUNET_SFACE_ONNX",
         "github_api": "CONFIGURED" if settings.GITHUB_TOKEN else "UNAUTHENTICATED",
         "youtube_api": "CONFIGURED" if settings.YOUTUBE_API_KEY else "DISABLED",
@@ -253,13 +284,16 @@ async def get_investigation_candidates(inv_id: str):
 
 @app.get("/api/v1/candidates/{cand_id}", response_model=CandidateCard)
 @app.get("/candidates/{cand_id}", response_model=CandidateCard)
-async def get_candidate(cand_id: str):
-    cand = candidates_db.get(cand_id)
-    if cand:
-        return cand
-    doc = await mongo_service.get_candidate(cand_id)
+async def get_candidate(cand_id: str, inv_id: Optional[str] = None):
+    if inv_id and f"{inv_id}:{cand_id}" in candidates_db:
+        return candidates_db[f"{inv_id}:{cand_id}"]
+    if cand_id in candidates_db:
+        return candidates_db[cand_id]
+    doc = await mongo_service.get_candidate(cand_id, inv_id=inv_id)
     if doc:
         cand = CandidateCard(**doc)
+        if inv_id:
+            candidates_db[f"{inv_id}:{cand_id}"] = cand
         candidates_db[cand_id] = cand
         return cand
     raise HTTPException(status_code=404, detail="Candidate not found")

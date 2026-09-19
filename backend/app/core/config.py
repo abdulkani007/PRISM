@@ -25,9 +25,9 @@ class Settings(BaseModel):
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "").strip()
     SEARCH_API_KEY: str = os.getenv("SEARCH_API_KEY", "").strip()
     
-    # Database Settings
-    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017").strip()
-    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "prism_db").strip()
+    # Database Settings (MongoDB Atlas)
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "").strip()
+    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "prism").strip()
     
     REQUEST_TIMEOUT_SECONDS: int = 15
 
