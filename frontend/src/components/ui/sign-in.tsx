@@ -157,8 +157,11 @@ export const SignInPage: React.FC<SignInPageProps> = ({
       {/* Right column: hero image + testimonials */}
       {heroImageSrc && (
         <section className="hidden md:block flex-1 relative p-4">
-          <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center border border-white/10" style={{ backgroundImage: `url(${heroImageSrc})` }}>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent rounded-3xl" />
+          <div
+            className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center border border-white/10 overflow-hidden shadow-2xl shadow-black"
+            style={{ backgroundImage: `url(${heroImageSrc})` }}
+          >
+            <div className={`absolute inset-0 rounded-3xl ${testimonials.length > 0 ? "bg-gradient-to-t from-black/80 via-black/30 to-transparent" : "bg-gradient-to-t from-black/30 via-transparent to-black/10"}`} />
           </div>
           {testimonials.length > 0 && (
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">

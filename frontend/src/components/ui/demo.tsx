@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
 } from "@/lib/firebase";
+import loginImg from '@/assets/login.png';
 
 const sampleTestimonials: Testimonial[] = [
   {
@@ -127,8 +128,8 @@ export const SignInPageDemo: React.FC<SignInPageDemoProps> = ({ onBackToHome, on
   return (
     <div className="bg-background text-foreground min-h-screen">
       <SignInPage
-        heroImageSrc="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200"
-        testimonials={sampleTestimonials}
+        heroImageSrc={loginImg}
+        testimonials={[]}
         onSignIn={handleSignIn}
         onGoogleSignIn={handleGoogleSignIn}
         onResetPassword={handleResetPassword}
