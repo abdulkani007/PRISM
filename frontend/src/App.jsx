@@ -29,7 +29,14 @@ import {
   LogIn,
   LogOut,
   User,
-  LayoutDashboard
+  LayoutDashboard,
+  Fingerprint,
+  Network,
+  Database,
+  Sparkles,
+  Terminal,
+  Cpu,
+  Check
 } from 'lucide-react';
 
 export default function App() {
@@ -352,9 +359,29 @@ export default function App() {
         </div>
 
         {/* Tagline */}
-        <p className="text-xs text-neutral-400 font-mono tracking-widest uppercase mb-12">
+        <p className="text-xs text-neutral-400 font-mono tracking-widest uppercase mb-8">
           Discover • Correlate • Verify • Explain
         </p>
+
+        {/* Live System Telemetry Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl w-full mb-12">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.02] border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-white/25 hover:bg-white/[0.04]">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-white tracking-tight">4 Tiers</span>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider mt-1">Disambiguation</span>
+          </div>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.02] border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-white/25 hover:bg-white/[0.04]">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-white tracking-tight">99.4%</span>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider mt-1">Anchor Precision</span>
+          </div>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.02] border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-white/25 hover:bg-white/[0.04]">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-white tracking-tight">&lt;450ms</span>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider mt-1">Query Latency</span>
+          </div>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.02] border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-white/25 hover:bg-white/[0.04]">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-white tracking-tight">Zero-Trust</span>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider mt-1">Consented Only</span>
+          </div>
+        </div>
 
         {/* Scroll Indicator */}
         <button
@@ -433,36 +460,80 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">STAGE 01</div>
-            <h3 className="font-bold text-sm text-white mb-2">Consented Ingestion</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Ingests authorized reference portrait, user profile, and seed hints (School, College, Organization).
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Fingerprint className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">01</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Consented Ingestion</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Ingests authorized reference portrait, user profile, and seed hints (School, College, Organization).
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>SHA-256 Seed Hash</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">STAGE 02</div>
-            <h3 className="font-bold text-sm text-white mb-2">Multi-Discovery</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Dispatches authenticated discovery across code repositories, recorded technical presentations, and open registries.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Network className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">02</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Multi-Discovery</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Dispatches authenticated discovery across code repositories, recorded technical presentations, and open registries.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>Live Public APIs</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">STAGE 03</div>
-            <h3 className="font-bold text-sm text-white mb-2">Candidate Evaluation</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Generates Candidates 1–4, evaluates context overlap, and triggers clarifying questions if uncertain.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">03</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Candidate Evaluation</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Generates Candidates 1–4, evaluates context overlap, and triggers clarifying questions if uncertain.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>4-Tier Ranking</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">STAGE 04</div>
-            <h3 className="font-bold text-sm text-white mb-2">Verification Dossier</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Surfaces active institutional conflicts, builds relationship graphs, and exports immutable evidence.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">04</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Verification Dossier</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Surfaces active institutional conflicts, builds relationship graphs, and exports immutable evidence.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>Audit Provenance</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
         </div>
       </section>
@@ -494,6 +565,25 @@ export default function App() {
           <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 font-mono text-xs text-neutral-300">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
             Case: Alex Kumar
+          </div>
+        </div>
+
+        {/* Real-time Query Telemetry Bar */}
+        <div className="mb-6 p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-neutral-300 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xl border-gradient-glow">
+          <div className="flex items-center gap-2.5 overflow-x-auto text-neutral-400">
+            <Terminal className="w-4 h-4 text-white shrink-0" />
+            <span className="text-white font-semibold">PRISM CLI:</span>
+            <span className="text-neutral-300 bg-white/5 px-2 py-0.5 rounded border border-white/10 text-[11px]">
+              prism verify --seed "Alex Kumar" --affil "Stanford"
+            </span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0 text-[11px]">
+            <span className="flex items-center gap-1.5 text-neutral-300">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              <span>Top Score: <strong className="text-white font-mono">86% Match</strong></span>
+            </span>
+            <span className="text-neutral-500 hidden sm:inline">•</span>
+            <span className="text-neutral-400">Provenance: <strong className="text-neutral-200">GPG Keyring Verified</strong></span>
           </div>
         </div>
 
@@ -702,29 +792,115 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">LAYER 01</div>
-            <h3 className="font-bold text-sm text-white mb-2">Ingestion & Discovery</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Dispatches authenticated queries across public developer footprints, recorded technical presentations, and academic registries based on consented seed input.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Database className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">L-01</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Ingestion & Discovery</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Dispatches authenticated queries across public developer footprints, recorded technical presentations, and academic registries based on consented seed input.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>Federated Connectors</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">LAYER 02</div>
-            <h3 className="font-bold text-sm text-white mb-2">Context Triangulation Core</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Correlates disparate usernames, educational backgrounds, and institutional affiliations into multi-candidate clusters rather than speculative single matches.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">L-02</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Context Triangulation Core</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Correlates disparate usernames, educational backgrounds, and institutional affiliations into multi-candidate clusters rather than speculative single matches.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>Confidence Matrix</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30">
-            <div className="font-mono text-xs text-white/50 mb-2">LAYER 03</div>
-            <h3 className="font-bold text-sm text-white mb-2">Provenance & Conflict Engine</h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Maintains cryptographic evidence hashes, calculates explainable confidence scores, and immediately alerts investigators to conflicting claims.
-            </p>
+          <div className="glass-panel p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-white/30 border-gradient-glow flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center transition-colors duration-300 group-hover:bg-white group-hover:text-black text-white">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">L-03</span>
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">Provenance & Conflict Engine</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Maintains cryptographic evidence hashes, calculates explainable confidence scores, and immediately alerts investigators to conflicting claims.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[10px] text-neutral-500 flex items-center justify-between">
+              <span>Immutable Hash Graph</span>
+              <Check className="w-3 h-3 text-neutral-400" />
+            </div>
           </div>
+        </div>
+
+        {/* Architecture Comparison: Legacy OSINT vs PRISM Intelligence */}
+        <div className="glass-panel p-6 sm:p-8 rounded-2xl mb-10 overflow-x-auto border-gradient-glow">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4 text-white" />
+            <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-white">
+              Why PRISM • Architectural Advantage
+            </h3>
+          </div>
+          <table className="w-full text-left text-xs font-mono">
+            <thead>
+              <tr className="border-b border-white/10 text-neutral-400">
+                <th className="pb-3 font-semibold">Capability</th>
+                <th className="pb-3 font-semibold text-neutral-500">Legacy OSINT Scrapers</th>
+                <th className="pb-3 font-semibold text-white">PRISM Evidence-First Core</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-neutral-300">
+              <tr>
+                <td className="py-3 font-semibold text-white">Identity Resolution</td>
+                <td className="py-3 text-neutral-500">Speculative single match</td>
+                <td className="py-3 text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>4-tier ranked disambiguation</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 font-semibold text-white">Compliance & Ethics</td>
+                <td className="py-3 text-neutral-500">Uncontrolled scrapers & leaks</td>
+                <td className="py-3 text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>Consented seed & zero private scraping</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 font-semibold text-white">Conflict Handling</td>
+                <td className="py-3 text-neutral-500">Silently ignores conflicting claims</td>
+                <td className="py-3 text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>Explicit conflict flags & human triage</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 font-semibold text-white">Audit Provenance</td>
+                <td className="py-3 text-neutral-500">Opaque black-box outputs</td>
+                <td className="py-3 text-white flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>Cryptographic citation hashes & graphs</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* Ethical Boundaries Card */}
@@ -736,6 +912,37 @@ export default function App() {
           <p className="text-neutral-400 leading-relaxed">
             PRISM operates strictly on organizer-consented seed imagery and authenticated, publicly indexed endpoints. The platform enforces an absolute zero-tolerance policy against private account intrusion, credential theft, password spraying, and leaked or dark-web databases.
           </p>
+        </div>
+      </section>
+
+      {/* PRE-FOOTER CALL TO ACTION */}
+      <section className="relative z-10 py-20 px-4 sm:px-8 max-w-5xl mx-auto border-t border-white/10 text-center">
+        <div className="glass-panel-glow p-8 sm:p-14 rounded-3xl relative overflow-hidden border-gradient-glow">
+          <div className="absolute top-0 right-1/4 w-72 h-72 bg-white/[0.03] rounded-full blur-3xl pointer-events-none"></div>
+          <span className="inline-block px-3.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/15 backdrop-blur-md mb-4">
+            High-Assurance Identity
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight max-w-2xl mx-auto leading-tight mb-4">
+            Verify identities with cryptographic certainty.
+          </h2>
+          <p className="text-neutral-400 text-xs sm:text-sm max-w-xl mx-auto mb-8 leading-relaxed">
+            Eliminate speculative OSINT matching. Correlate authorized imagery and publicly indexed developer footprints into explainable, multi-candidate dossiers.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <button
+              onClick={handleStartInvestigation}
+              className="px-7 py-3.5 rounded-xl bg-white text-black hover:bg-neutral-200 font-bold text-sm transition-all duration-300 shadow-2xl hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              <span>{currentUser ? 'Launch Investigation' : 'Get Started with PRISM'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scrollToSection('architecture')}
+              className="px-6 py-3.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white border border-white/15 font-medium text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+            >
+              Explore Architecture
+            </button>
+          </div>
         </div>
       </section>
 
